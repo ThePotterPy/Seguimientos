@@ -1,0 +1,22 @@
+{
+  "name": "pagina-sin-nombre",
+  "version": "1.0.0",
+  "description": "Página sin nombre - Seguimiento de envíos de Urbano Express y Andreani",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "tracking",
+    "urbano",
+    "andreani",
+    "mercadolibre",
+    "logistica"
+  ],
+  "author": "",
+  "license": "ISC"
+}
