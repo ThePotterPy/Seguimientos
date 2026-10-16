@@ -40,29 +40,13 @@
           </button>
         </div>
 
-        <div id="shipperBadgeContainer" class="text-xs text-gray-500 flex items-center gap-1.5 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded">
+        <div id="shipperBadgeContainer" class="text-xs text-gray-500 flex items-center gap-1.5 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded select-none cursor-default" title="Cuenta consolidada de despacho">
           <span>Cuenta:</span>
-          <strong id="currentShipperBadge" class="font-mono text-gray-900">004185</strong>
-          <button id="toggleSettingsBtn" class="ml-1 text-gray-400 hover:text-gray-700" title="Cambiar código de cuenta">
-            <i class="fa-solid fa-pen text-[10px]"></i>
-          </button>
+          <strong class="font-mono text-gray-900 font-bold">004185</strong>
         </div>
       </div>
     </div>
   </header>
-
-  <!-- Panel de Configuración de Shipper (Urbano) -->
-  <div id="settingsBox" class="hidden bg-gray-50 border-b border-gray-200 py-3">
-    <div class="max-w-5xl mx-auto px-4 sm:px-6 flex items-center justify-between text-xs">
-      <div class="flex items-center gap-2 flex-wrap">
-        <span class="font-semibold text-gray-700">Código de Cuenta Shipper para Urbano:</span>
-        <input type="text" id="shipperInput" value="004185" maxlength="6" class="border border-gray-300 rounded px-2 py-1 font-mono text-xs w-24">
-        <button id="saveShipperBtn" class="bg-gray-800 text-white px-3 py-1 rounded font-semibold hover:bg-black">Guardar</button>
-        <button id="resetShipperBtn" class="text-gray-500 hover:underline">Restablecer a 004185</button>
-      </div>
-      <button id="closeSettingsBtn" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark"></i></button>
-    </div>
-  </div>
 
   <!-- Contenido Principal -->
   <main class="max-w-5xl w-full mx-auto px-4 sm:px-6 py-8 flex-1">

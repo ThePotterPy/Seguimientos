@@ -1,6 +1,6 @@
 // Estado de la aplicación
 let currentCarrier = localStorage.getItem('selected_carrier') || 'urbano';
-let currentShipper = localStorage.getItem('urbano_shipper') || '004185';
+const currentShipper = '004185'; // Cuenta fija consolidada
 let recentSearches = JSON.parse(localStorage.getItem('urbano_recent_searches') || '[]');
 let lastTrackedData = null;
 
@@ -8,13 +8,6 @@ let lastTrackedData = null;
 const carrierUrbanoBtn = document.getElementById('carrierUrbanoBtn');
 const carrierAndreaniBtn = document.getElementById('carrierAndreaniBtn');
 const shipperBadgeContainer = document.getElementById('shipperBadgeContainer');
-const currentShipperBadge = document.getElementById('currentShipperBadge');
-const toggleSettingsBtn = document.getElementById('toggleSettingsBtn');
-const settingsBox = document.getElementById('settingsBox');
-const closeSettingsBtn = document.getElementById('closeSettingsBtn');
-const shipperInput = document.getElementById('shipperInput');
-const saveShipperBtn = document.getElementById('saveShipperBtn');
-const resetShipperBtn = document.getElementById('resetShipperBtn');
 
 // Elementos del DOM - Formulario de Búsqueda
 const trackForm = document.getElementById('trackForm');
@@ -70,7 +63,6 @@ const batchSummaryStats = document.getElementById('batchSummaryStats');
 
 // Inicialización
 function init() {
-  updateShipperUI();
   setCarrier(currentCarrier, false);
   renderRecentSearches();
 
@@ -87,12 +79,6 @@ function init() {
     orderInput.dispatchEvent(new Event('input'));
     performTrack(orderFromUrl);
   }
-}
-
-// Configuración de Shipper (Urbano)
-function updateShipperUI() {
-  currentShipperBadge.textContent = currentShipper;
-  shipperInput.value = currentShipper;
 }
 
 // Cambio de Courier (Urbano vs Andreani)
@@ -117,7 +103,6 @@ function setCarrier(carrier, clearViews = true) {
     orderInput.placeholder = 'Ingresá tu pedido de Mercado Libre o guía, ej: 2000018697823352';
 
     shipperBadgeContainer.classList.add('hidden');
-    settingsBox.classList.add('hidden');
   } else {
     carrierUrbanoBtn.classList.add('active');
     carrierUrbanoBtn.classList.remove('text-gray-500');
@@ -158,29 +143,6 @@ tabBatch.addEventListener('click', () => {
   tabSingle.classList.remove('active');
   batchSearchView.classList.remove('hidden');
   singleSearchView.classList.add('hidden');
-});
-
-// Panel Shipper
-toggleSettingsBtn.addEventListener('click', () => {
-  settingsBox.classList.toggle('hidden');
-});
-closeSettingsBtn.addEventListener('click', () => {
-  settingsBox.classList.add('hidden');
-});
-saveShipperBtn.addEventListener('click', () => {
-  const val = shipperInput.value.trim();
-  if (val) {
-    currentShipper = val;
-    localStorage.setItem('urbano_shipper', currentShipper);
-    updateShipperUI();
-    settingsBox.classList.add('hidden');
-  }
-});
-resetShipperBtn.addEventListener('click', () => {
-  currentShipper = '004185';
-  localStorage.setItem('urbano_shipper', currentShipper);
-  updateShipperUI();
-  settingsBox.classList.add('hidden');
 });
 
 // Chips de ejemplo rápido
