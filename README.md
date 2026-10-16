@@ -1,60 +1,57 @@
-# 📦 Rastreador de Envíos Urbano Express
+# 📦 Página sin nombre
+> *porque a Jorge no se le ocurre nada*
 
-Aplicación web rápida para consultar el seguimiento de pedidos enviados por **Urbano Express Argentina** bajo cuentas remitentes consolidadas (por defecto **`004185`**).
+Centro de seguimiento y rastreo oficial unificado para envíos de **Urbano Express** (cuenta consolidada `004185`) y **Correo Andreani** (con soporte para pedidos de Mercado Libre y acceso internacional directo sin bloqueo de IP).
 
 ---
 
-## 🚀 Inicio Rápido
+## 🚀 Inicio Local
 
 ### En Windows (1 solo clic):
 Hacé doble clic en el archivo:
 ```text
 iniciar.bat
 ```
-Esto abrirá automáticamente el navegador en `http://localhost:3333`.
+Abre automáticamente el navegador en `http://localhost:3333`.
 
 ### Desde la terminal:
 ```bash
 npm start
-# o directamente:
-node server.js
 ```
+
+---
+
+## ☁️ Deploy en Railway
+
+El proyecto está 100% optimizado para desplegarse en **[Railway](https://railway.app)**:
+- **Cero dependencias externas (`0 npm dependencies`)**: utiliza módulos nativos de Node.js (`http`, `https`, `crypto`).
+- Despliegue ultrarrápido (< 5 segundos).
+- Configuración de `railway.json` y `package.json` ya incluida con bind en `0.0.0.0` y soporte para `$PORT`.
+
+### Pasos para deployar:
+1. Subí este repositorio a tu GitHub:
+   ```bash
+   git remote add origin https://github.com/TU_USUARIO/TU_REPO.git
+   git branch -M main
+   git push -u origin main
+   ```
+2. Entrá en [Railway.app](https://railway.app) y hacé clic en **"New Project"**.
+3. Seleccioná **"Deploy from GitHub repo"** y elegí este repositorio.
+4. ¡Listo! Railway detectará automáticamente Node.js y desplegará la app al instante con su URL pública HTTPS.
 
 ---
 
 ## ✨ Características
 
-1. **Búsqueda Directa por Número de Pedido**:
-   - Pegás el código de compra (ej: `2745296ICBC` o `1638408422772-01`) y el sistema le añade automáticamente el Shipper `004185` para consultar la base de datos de Urbano sin errores.
-2. **Enlace Oficial Directo**:
-   - Cada búsqueda incluye un botón destacado **"Ver en Urbano Oficial ↗"** que abre exactamente la URL original en una pestaña nueva.
-3. **Línea de Tiempo Completa (Timeline)**:
-   - Extrae automáticamente todos los checkpoints y movimientos detallados de Urbano (Hora, Fecha, Agencia/Sucursal, Zona, Estado).
-4. **Consulta Masiva (Lotes)**:
-   - Permite ingresar una lista de pedidos y consultar el estado de todos en paralelo.
-5. **Historial de Búsquedas Recientes**:
-   - Guarda en memoria local tus últimos pedidos para re-consultarlos con un clic.
-6. **Configuración de Cuenta Shipper**:
-   - Podés cambiar el código de remitente si en el futuro necesitás consultar otra cuenta.
-7. **Zero Dependencias Externas**:
-   - El backend corre con Node.js puro sin necesidad de instalar paquetes pesados en `node_modules`.
-
----
-
-## 📡 API Local
-
-### 1. Consultar un pedido individual:
-```http
-GET /api/track?order=2745296ICBC&shipper=004185
-```
-
-### 2. Consulta por lotes:
-```http
-POST /api/track-batch
-Content-Type: application/json
-
-{
-  "orders": ["2745296ICBC", "1638408422772-01"],
-  "shipper": "004185"
-}
-```
+1. **Urbano Express**:
+   - Búsqueda por número de pedido de compras (ej: `2745296ICBC`, `1638408422772-01`).
+   - Prefijado automático de la cuenta shipper (`004185`).
+   - Extracción de timeline completo, sucursales y enlace oficial.
+2. **Correo Andreani**:
+   - Soporte para números de pedido de Mercado Libre (ej: `2000018697823352`) o números de guía oficial.
+   - Conexión directa a la API de trazabilidad oficial de Andreani.
+   - Muestra Referencia de Envío, Número de Guía Andreani, Remitente, Servicio y todos los eventos con fecha y sucursal.
+3. **Modo Lotes**:
+   - Consultas de múltiples paquetes en simultáneo.
+4. **Diseño Limpio y Claro**:
+   - Estilo profesional sobre fondo blanco puro (`#ffffff`), sin estilos oscuros ni estéticas genéricas de IA.
