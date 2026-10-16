@@ -21,6 +21,11 @@
   --andreani-blue-light: #eff6ff;
   --andreani-blue-border: #bfdbfe;
 
+  --entregar-emerald: #059669;
+  --entregar-emerald-hover: #047857;
+  --entregar-emerald-light: #ecfdf5;
+  --entregar-emerald-border: #a7f3d0;
+
   /* Neutros Suaves (Zinc / Slate) */
   --bg-page: #f8fafc;
   --bg-surface: #ffffff;
@@ -137,6 +142,10 @@ body {
   background-color: var(--andreani-blue);
 }
 
+.carrier-pill-btn.active.is-entregar .carrier-dot {
+  background-color: var(--entregar-emerald);
+}
+
 .carrier-dot {
   width: 7px;
   height: 7px;
@@ -200,6 +209,11 @@ body {
 .search-input-wrapper.active-andreani:focus-within {
   border-color: var(--andreani-blue);
   box-shadow: 0 0 0 3px rgba(0, 81, 149, 0.12);
+}
+
+.search-input-wrapper.active-entregar:focus-within {
+  border-color: var(--entregar-emerald);
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.12);
 }
 
 .search-input-field {
@@ -280,6 +294,31 @@ body {
 }
 
 .btn-primary-andreani:active {
+  transform: scale(0.985);
+}
+
+.btn-primary-entregar {
+  background-color: var(--entregar-emerald);
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 13.5px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 1px 2px rgba(5, 150, 105, 0.2);
+}
+
+.btn-primary-entregar:hover {
+  background-color: var(--entregar-emerald-hover);
+  box-shadow: 0 2px 4px rgba(5, 150, 105, 0.3);
+}
+
+.btn-primary-entregar:active {
   transform: scale(0.985);
 }
 
@@ -525,4 +564,91 @@ body {
   background-color: #f1f5f9;
   border: 1px solid #e2e8f0;
   border-radius: 4px;
+}
+
+/* ==========================================================================
+   Selector de Sub-Envíos (Múltiples tramos / Retiro y Despacho)
+   ========================================================================== */
+.suborders-bar {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 2px 2px 6px 2px;
+  scrollbar-width: thin;
+}
+
+.suborder-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid var(--border-subtle);
+  background: #ffffff;
+  color: var(--text-secondary);
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.suborder-pill:hover {
+  background: #f8fafc;
+  color: var(--text-main);
+  border-color: #cbd5e1;
+}
+
+.suborder-pill.active {
+  background: #ecfdf5;
+  color: #065f46;
+  border-color: #a7f3d0;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+
+.suborder-pill.active .suborder-dot {
+  background-color: var(--entregar-emerald);
+}
+
+.suborder-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #cbd5e1;
+}
+
+/* Modal de Configuración / Sesión */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(2px);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.modal-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.modal-card {
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-popover);
+  width: 100%;
+  max-width: 480px;
+  transform: scale(0.96);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.modal-overlay.open .modal-card {
+  transform: scale(1);
 }

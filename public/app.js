@@ -1,11 +1,11 @@
 // ==========================================================================
 // Página sin nombre — Lógica Frontend
-// Rastreador unificado Urbano Express & Correo Andreani
+// Rastreador unificado Urbano Express, Correo Andreani y Entregar
 // ==========================================================================
 
 // Estado de la aplicación
 let currentCarrier = localStorage.getItem('selected_carrier') || 'urbano';
-const currentShipper = '004185'; // Cuenta consolidada fija
+const currentShipper = '004185'; // Cuenta consolidada fija (Urbano)
 let recentSearches = JSON.parse(localStorage.getItem('urbano_recent_searches') || '[]');
 let lastTrackedData = null;
 let currentViewMode = 'timeline'; // 'timeline' o 'table'
@@ -13,7 +13,17 @@ let currentViewMode = 'timeline'; // 'timeline' o 'table'
 // Elementos del DOM - Encabezado y Selector de Courier
 const carrierUrbanoBtn = document.getElementById('carrierUrbanoBtn');
 const carrierAndreaniBtn = document.getElementById('carrierAndreaniBtn');
+const carrierEntregarBtn = document.getElementById('carrierEntregarBtn');
 const shipperBadgeContainer = document.getElementById('shipperBadgeContainer');
+const entregarSessionBtn = document.getElementById('entregarSessionBtn');
+
+// Modal de Sesión Entregar
+const sessionModal = document.getElementById('sessionModal');
+const closeSessionModalBtn = document.getElementById('closeSessionModalBtn');
+const cancelSessionModalBtn = document.getElementById('cancelSessionModalBtn');
+const saveSessionCookieBtn = document.getElementById('saveSessionCookieBtn');
+const sessionCookieInput = document.getElementById('sessionCookieInput');
+const sessionStatusMsg = document.getElementById('sessionStatusMsg');
 
 // Elementos del DOM - Formulario de Búsqueda
 const trackForm = document.getElementById('trackForm');
@@ -39,6 +49,11 @@ const statusBanner = document.getElementById('statusBanner');
 const statusLabelText = document.getElementById('statusLabelText');
 const statusDateBadge = document.getElementById('statusDateBadge');
 const statusIndicatorDot = document.getElementById('statusIndicatorDot');
+
+// Sub-órdenes (para pedidos de Entregar con múltiples tramos)
+const subOrdersContainer = document.getElementById('subOrdersContainer');
+const subOrdersList = document.getElementById('subOrdersList');
+const subOrdersCount = document.getElementById('subOrdersCount');
 
 const resultOrderTitle = document.getElementById('resultOrderTitle');
 const metaGuia = document.getElementById('metaGuia');
@@ -98,7 +113,7 @@ function init() {
   const orderFromUrl = urlParams.get('order');
   const carrierFromUrl = urlParams.get('carrier');
 
-  if (carrierFromUrl && (carrierFromUrl === 'andreani' || carrierFromUrl === 'urbano')) {
+  if (carrierFromUrl && ['andreani', 'urbano', 'entregar'].includes(carrierFromUrl)) {
     setCarrier(carrierFromUrl, false);
   }
 
@@ -115,10 +130,29 @@ function init() {
       orderInput.focus();
     }
   });
+
+  // Configurar modal de sesión
+  if (entregarSessionBtn) {
+    entregarSessionBtn.addEventListener('click', openSessionModal);
+  }
+  if (closeSessionModalBtn) {
+    closeSessionModalBtn.addEventListener('click', closeSessionModal);
+  }
+  if (cancelSessionModalBtn) {
+    cancelSessionModalBtn.addEventListener('click', closeSessionModal);
+  }
+  if (sessionModal) {
+    sessionModal.addEventListener('click', (e) => {
+      if (e.target === sessionModal) closeSessionModal();
+    });
+  }
+  if (saveSessionCookieBtn) {
+    saveSessionCookieBtn.addEventListener('click', handleSaveSessionCookie);
+  }
 }
 
 // ==========================================================================
-// Cambio de Courier (Urbano vs Andreani)
+// Cambio de Courier (Urbano vs Andreani vs Entregar)
 // ==========================================================================
 function setCarrier(carrier, clearViews = true) {
   currentCarrier = carrier;
@@ -129,9 +163,13 @@ function setCarrier(carrier, clearViews = true) {
     errorBox.classList.add('hidden');
   }
 
+  // Remover activo de todos los botones
+  carrierUrbanoBtn.classList.remove('active');
+  carrierAndreaniBtn.classList.remove('active');
+  if (carrierEntregarBtn) carrierEntregarBtn.classList.remove('active');
+
   if (carrier === 'andreani') {
     carrierAndreaniBtn.classList.add('active');
-    carrierUrbanoBtn.classList.remove('active');
 
     searchInputContainer.className = 'search-input-wrapper active-andreani flex-1';
     submitBtn.className = 'btn-primary-andreani h-[46px] px-6';
@@ -142,9 +180,25 @@ function setCarrier(carrier, clearViews = true) {
     orderInput.placeholder = 'Ingresá tu pedido de Mercado Libre o guía, ej: 2000018697823352';
 
     shipperBadgeContainer.classList.add('hidden');
+    if (entregarSessionBtn) entregarSessionBtn.classList.add('hidden');
+  } else if (carrier === 'entregar') {
+    if (carrierEntregarBtn) carrierEntregarBtn.classList.add('active');
+
+    searchInputContainer.className = 'search-input-wrapper active-entregar flex-1';
+    submitBtn.className = 'btn-primary-entregar h-[46px] px-6';
+
+    searchLabel.textContent = 'Número de pedido, remito o referencia (Entregar):';
+    carrierIndicatorTag.textContent = 'Modo Entregar';
+    carrierIndicatorTag.className = 'text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200';
+    orderInput.placeholder = 'Ingresá tu código o pedido BGH, ej: 1659868563485-01';
+
+    shipperBadgeContainer.classList.add('hidden');
+    if (entregarSessionBtn) {
+      entregarSessionBtn.classList.remove('hidden');
+      entregarSessionBtn.classList.add('inline-flex');
+    }
   } else {
     carrierUrbanoBtn.classList.add('active');
-    carrierAndreaniBtn.classList.remove('active');
 
     searchInputContainer.className = 'search-input-wrapper active-urbano flex-1';
     submitBtn.className = 'btn-primary-urbano h-[46px] px-6';
@@ -155,15 +209,20 @@ function setCarrier(carrier, clearViews = true) {
     orderInput.placeholder = 'Ingresá tu código, ej: 2745296ICBC';
 
     shipperBadgeContainer.classList.remove('hidden');
+    if (entregarSessionBtn) entregarSessionBtn.classList.add('hidden');
   }
 }
 
 carrierUrbanoBtn.addEventListener('click', () => setCarrier('urbano'));
 carrierAndreaniBtn.addEventListener('click', () => setCarrier('andreani'));
+if (carrierEntregarBtn) carrierEntregarBtn.addEventListener('click', () => setCarrier('entregar'));
 
 // Auto-detección inteligente de courier
 function autoDetectCarrier(code) {
   const trimmed = (code || '').trim();
+  if (trimmed.includes('-0') || /^\d{13}-\d{2}$/.test(trimmed) || trimmed.startsWith('ZRE') || trimmed.startsWith('ZECH') || trimmed.startsWith('ZECO')) {
+    return 'entregar';
+  }
   if (/^2000\d{10,14}$/.test(trimmed) || trimmed.startsWith('2000') || trimmed.startsWith('4004') || (/^\d{15,16}$/.test(trimmed))) {
     return 'andreani';
   }
@@ -217,7 +276,8 @@ pasteBtn.addEventListener('click', async () => {
       const detected = autoDetectCarrier(code);
       if (detected !== currentCarrier) {
         setCarrier(detected, false);
-        showToast(`Detectado código de ${detected === 'andreani' ? 'Andreani' : 'Urbano'}`, 'info');
+        const name = detected === 'andreani' ? 'Andreani' : (detected === 'entregar' ? 'Entregar' : 'Urbano');
+        showToast(`Detectado código de ${name}`, 'info');
       }
       orderInput.value = code;
       orderInput.dispatchEvent(new Event('input'));
@@ -251,7 +311,8 @@ trackForm.addEventListener('submit', (e) => {
     const detected = autoDetectCarrier(order);
     if (detected !== currentCarrier) {
       setCarrier(detected, false);
-      showToast(`Detectado código de ${detected === 'andreani' ? 'Andreani' : 'Urbano'}`, 'info');
+      const name = detected === 'andreani' ? 'Andreani' : (detected === 'entregar' ? 'Entregar' : 'Urbano');
+      showToast(`Detectado código de ${name}`, 'info');
     }
     performTrack(order);
   }
@@ -266,9 +327,13 @@ async function performTrack(order) {
   newUrl.searchParams.set('carrier', currentCarrier);
   window.history.pushState({}, '', newUrl);
 
-  loadingText.textContent = currentCarrier === 'andreani' 
-    ? 'Consultando estado oficial en Andreani...' 
-    : 'Consultando estado oficial en Urbano...';
+  if (currentCarrier === 'entregar') {
+    loadingText.textContent = 'Consultando estado oficial en Entregar...';
+  } else if (currentCarrier === 'andreani') {
+    loadingText.textContent = 'Consultando estado oficial en Andreani...';
+  } else {
+    loadingText.textContent = 'Consultando estado oficial en Urbano...';
+  }
 
   loadingBox.classList.remove('hidden');
   errorBox.classList.add('hidden');
@@ -281,7 +346,7 @@ async function performTrack(order) {
     const data = await res.json();
 
     if (!data.success) {
-      showError(data.message || 'No se encontró el envío.', data.officialUrl);
+      showError(data.message || 'No se encontró el envío.', data.officialUrl, data.needSession);
       return;
     }
 
@@ -289,9 +354,9 @@ async function performTrack(order) {
     renderResult(data);
     addToRecent(order, data.carrier || currentCarrier);
   } catch (err) {
-    const fallbackUrl = currentCarrier === 'andreani'
-      ? `https://www.andreani.com/envio/${encodeURIComponent(order)}`
-      : `https://apis.urbano.com.ar/cespecifica/?tracking=${currentShipper}${order}`;
+    let fallbackUrl = `https://apis.urbano.com.ar/cespecifica/?tracking=${currentShipper}${order}`;
+    if (currentCarrier === 'andreani') fallbackUrl = `https://www.andreani.com/envio/${encodeURIComponent(order)}`;
+    if (currentCarrier === 'entregar') fallbackUrl = 'https://svr.entregar.net.ar/e_transport/grid_view_consulta_pedidos/';
     showError(`Error de conexión con el servidor: ${err.message}`, fallbackUrl);
   } finally {
     loadingBox.classList.add('hidden');
@@ -304,14 +369,19 @@ async function performTrack(order) {
 // Renderizado del Resultado
 // ==========================================================================
 function renderResult(data) {
-  const isAndreani = data.carrier === 'andreani';
+  const carrier = data.carrier || currentCarrier;
 
-  // Configurar distintivo de la empresa
-  if (isAndreani) {
+  // Configurar distintivo de la empresa y botón oficial
+  if (carrier === 'andreani') {
     resultCarrierTag.textContent = 'Correo Andreani';
     resultCarrierTag.className = 'text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-blue-50 text-blue-800 border border-blue-200';
     officialLinkBtn.className = 'btn-primary-andreani px-4 py-2 text-xs';
     officialLinkText.textContent = 'Ver en Andreani Oficial';
+  } else if (carrier === 'entregar') {
+    resultCarrierTag.textContent = 'Entregar';
+    resultCarrierTag.className = 'text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200';
+    officialLinkBtn.className = 'btn-primary-entregar px-4 py-2 text-xs';
+    officialLinkText.textContent = 'Ver en Entregar Oficial';
   } else {
     resultCarrierTag.textContent = 'Urbano Express';
     resultCarrierTag.className = 'text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-red-50 text-red-800 border border-red-200';
@@ -321,12 +391,59 @@ function renderResult(data) {
 
   officialLinkBtn.href = data.officialUrl;
 
-  // Franja de estado
-  const cat = data.statusCategory || 'in_transit';
-  const label = data.statusLabel || data.summary.estadoRaw || 'En proceso';
+  // Manejo de múltiples tramos / sub-órdenes (Despacho / Retiro)
+  if (data.allOrders && data.allOrders.length > 1) {
+    subOrdersContainer.classList.remove('hidden');
+    subOrdersCount.textContent = data.allOrders.length;
+    subOrdersList.innerHTML = '';
+
+    const selectedIdx = data.selectedSubOrderIndex !== undefined ? data.selectedSubOrderIndex : 0;
+
+    data.allOrders.forEach((sub, sIdx) => {
+      const pill = document.createElement('button');
+      pill.type = 'button';
+      const isActive = sIdx === selectedIdx;
+      pill.className = `suborder-pill ${isActive ? 'active' : ''}`;
+      
+      const op = sub.operacion || 'Envío';
+      const idStr = sub.idpedido ? `#${sub.idpedido}` : '';
+      const st = sub.status || 'En proceso';
+
+      pill.innerHTML = `
+        <span class="suborder-dot"></span>
+        <span>${escapeHtml(op)} ${escapeHtml(idStr)}: <strong>${escapeHtml(st)}</strong></span>
+      `;
+
+      pill.addEventListener('click', () => {
+        data.selectedSubOrderIndex = sIdx;
+        applySubOrderData(data, sub);
+        // Actualizar active state de las píldoras
+        [...subOrdersList.children].forEach((c, idx) => {
+          c.classList.toggle('active', idx === sIdx);
+        });
+      });
+
+      subOrdersList.appendChild(pill);
+    });
+
+    // Aplicar los datos del tramo seleccionado
+    applySubOrderData(data, data.allOrders[selectedIdx]);
+  } else {
+    subOrdersContainer.classList.add('hidden');
+    applySubOrderData(data, null);
+  }
+
+  resultBox.classList.remove('hidden');
+}
+
+function applySubOrderData(data, subOrder) {
+  const isSub = Boolean(subOrder);
+  const cat = isSub ? subOrder.statusCategory : (data.statusCategory || 'in_transit');
+  const label = isSub ? (subOrder.statusLabel || subOrder.status) : (data.statusLabel || data.summary.estadoRaw || 'En proceso');
+  const dateStr = isSub ? subOrder.fechaStatus : data.summary.fechaEstado;
 
   statusLabelText.textContent = label;
-  statusDateBadge.textContent = data.summary.fechaEstado ? `(${data.summary.fechaEstado})` : '';
+  statusDateBadge.textContent = dateStr ? `(${dateStr})` : '';
 
   statusBanner.className = 'p-4 sm:p-5 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-4';
 
@@ -342,6 +459,10 @@ function renderResult(data) {
     statusBanner.classList.add('bg-amber-50/80', 'border-amber-100');
     statusLabelText.className = 'text-lg sm:text-xl font-extrabold text-amber-950';
     statusIndicatorDot.className = 'pulse-indicator text-amber-600';
+  } else if (cat === 'incident') {
+    statusBanner.classList.add('bg-rose-50/80', 'border-rose-100');
+    statusLabelText.className = 'text-lg sm:text-xl font-extrabold text-rose-950';
+    statusIndicatorDot.className = 'pulse-indicator text-rose-600';
   } else {
     statusBanner.classList.add('bg-slate-50', 'border-slate-200');
     statusLabelText.className = 'text-lg sm:text-xl font-extrabold text-slate-900';
@@ -349,26 +470,32 @@ function renderResult(data) {
   }
 
   // Metadatos clave
-  resultOrderTitle.textContent = data.referenciaEnvio || data.order;
-  metaGuia.textContent = data.guiaNumero || data.summary.guiaNumero || 'Sin asignar';
-  metaRemitente.textContent = data.summary.remitente || (isAndreani ? 'Andreani Oficial' : `Cuenta ${data.shipper || currentShipper}`);
-  metaServicio.textContent = data.summary.servicio || 'Distribución Estándar';
+  const refCode = isSub ? (subOrder.referencia || data.order) : (data.referenciaEnvio || data.order);
+  resultOrderTitle.textContent = refCode;
+
+  const guia = isSub ? (subOrder.remito || subOrder.idpedido) : (data.guiaNumero || data.summary.guiaNumero || 'Sin asignar');
+  metaGuia.textContent = guia;
+
+  const remit = isSub ? (subOrder.empresa ? `Empresa ${subOrder.empresa}` : 'Entregar') : (data.summary.remitente || 'Distribución');
+  metaRemitente.textContent = remit;
+
+  const serv = isSub ? [subOrder.servicio, subOrder.operacion].filter(Boolean).join(' • ') : (data.summary.servicio || 'Distribución Estándar');
+  metaServicio.textContent = serv;
   
-  const destInfo = data.detail.observaciones || data.detail.referencia || data.detail.direccion || 'Nacional';
+  const destInfo = isSub 
+    ? (subOrder.destinatario ? `${subOrder.destinatario} - ${subOrder.direccion || ''}` : subOrder.direccion || 'Nacional')
+    : (data.detail.destinatario ? `${data.detail.destinatario} - ${data.detail.direccion || ''}` : data.detail.observaciones || data.detail.direccion || 'Nacional');
   metaDestino.textContent = destInfo;
 
-  metaCiclo.textContent = data.summary.ciclo 
-    ? `Ciclo de despacho: ${data.summary.ciclo}` 
-    : (data.detail.observaciones ? `Observaciones: ${data.detail.observaciones}` : '');
+  const prodInfo = isSub ? subOrder.producto : (data.summary.producto || data.detail.producto);
+  metaCiclo.textContent = prodInfo ? `Producto: ${prodInfo}` : (data.summary.ciclo ? `Ciclo: ${data.summary.ciclo}` : '');
 
-  // Renderizar Movimientos en Timeline y Tabla
-  const movements = data.movements || [];
+  // Renderizar Movimientos
+  const movements = isSub ? (subOrder.movements || []) : (data.movements || []);
   movementsCountBadge.textContent = `${movements.length} eventos`;
 
   renderTimeline(movements, cat);
   renderTable(movements);
-
-  resultBox.classList.remove('hidden');
 }
 
 // Renderizado del Feed Timeline Vertical
@@ -408,6 +535,10 @@ function renderTimeline(movements, statusCategory) {
       ? `<span class="text-[10px] text-slate-400 font-mono-code ml-2">Zona ${escapeHtml(m.zone)}</span>`
       : '';
 
+    const descTag = m.description 
+      ? `<div class="text-[11px] text-slate-500 mt-1 italic">${escapeHtml(m.description)}</div>`
+      : '';
+
     stepDiv.innerHTML = `
       <div class="timeline-step-node">
         ${iconHtml}
@@ -426,6 +557,7 @@ function renderTimeline(movements, statusCategory) {
             <span class="text-xs sm:text-sm font-semibold text-slate-900">${escapeHtml(m.status)}</span>
             ${zoneTag}
           </div>
+          ${descTag}
           ${agencyTag}
         </div>
       </div>
@@ -465,6 +597,10 @@ function renderTable(movements) {
       ? `<span class="text-[10px] text-slate-400 font-mono-code block mt-0.5">Zona: ${escapeHtml(m.zone)}</span>` 
       : '';
 
+    const descTag = m.description 
+      ? `<div class="text-[11px] text-slate-500 italic mt-0.5">${escapeHtml(m.description)}</div>`
+      : '';
+
     tr.innerHTML = `
       <td class="font-mono-code text-slate-400 text-xs">${idx + 1}</td>
       <td class="font-mono-code text-xs whitespace-nowrap">${escapeHtml(m.date)} <span class="text-slate-500 font-normal">${escapeHtml(m.time)}</span></td>
@@ -473,6 +609,7 @@ function renderTable(movements) {
           ${phaseTag}
           <span class="text-xs text-slate-900">${escapeHtml(m.status)}</span>
         </div>
+        ${descTag}
         ${zoneTag}
       </td>
       <td class="text-xs text-slate-600 font-medium">${escapeHtml(m.agency || '-')}</td>
@@ -501,8 +638,8 @@ copyGuiaBtn.addEventListener('click', async () => {
 copySummaryBtn.addEventListener('click', async () => {
   if (!lastTrackedData) return;
   const d = lastTrackedData;
-  const carrierName = d.carrier === 'andreani' ? 'Correo Andreani' : 'Urbano Express';
-  const text = `Seguimiento ${carrierName}\nReferencia / Pedido: ${d.order}\nGuía Oficial: ${d.guiaNumero || d.summary.guiaNumero || 'N/A'}\nRemitente: ${d.summary.remitente || 'N/A'}\nEstado: ${d.statusLabel} (${d.summary.fechaEstado || ''})\nEnlace oficial: ${d.officialUrl}`;
+  const carrierName = d.carrier === 'andreani' ? 'Correo Andreani' : (d.carrier === 'entregar' ? 'Entregar' : 'Urbano Express');
+  const text = `Seguimiento ${carrierName}\nReferencia / Pedido: ${d.order}\nGuía / Remito: ${d.guiaNumero || d.summary.guiaNumero || 'N/A'}\nRemitente: ${d.summary.remitente || 'N/A'}\nEstado: ${d.statusLabel} (${d.summary.fechaEstado || ''})\nEnlace oficial: ${d.officialUrl}`;
 
   await copyText(text, 'Ficha del envío copiada para enviar');
 });
@@ -538,8 +675,23 @@ function showToast(message, type = 'success') {
 // ==========================================================================
 // Manejo de Errores
 // ==========================================================================
-function showError(msg, officialUrl) {
-  errorMessage.textContent = msg;
+function showError(msg, officialUrl, needSession = false) {
+  if (needSession) {
+    errorMessage.innerHTML = `
+      <span>${escapeHtml(msg)}</span>
+      <div class="mt-2.5">
+        <button type="button" id="renewSessionFromErrorBtn" class="text-xs font-bold text-emerald-800 bg-emerald-100 hover:bg-emerald-200 border border-emerald-300 px-3 py-1.5 rounded-lg inline-flex items-center gap-1.5 cursor-pointer transition">
+          <i class="fa-solid fa-key text-[10px]"></i>
+          <span>Renovar sesión de Entregar</span>
+        </button>
+      </div>
+    `;
+    const btn = document.getElementById('renewSessionFromErrorBtn');
+    if (btn) btn.onclick = openSessionModal;
+  } else {
+    errorMessage.textContent = msg;
+  }
+
   if (officialUrl) {
     errorOfficialLink.href = officialUrl;
     errorOfficialLink.classList.remove('hidden');
@@ -548,6 +700,68 @@ function showError(msg, officialUrl) {
   }
   resultBox.classList.add('hidden');
   errorBox.classList.remove('hidden');
+}
+
+// ==========================================================================
+// Modal de Sesión de Entregar
+// ==========================================================================
+async function openSessionModal() {
+  if (!sessionModal) return;
+  sessionModal.classList.add('open');
+  sessionStatusMsg.className = 'hidden';
+
+  try {
+    const res = await fetch('/api/entregar/session');
+    const data = await res.json();
+    if (data.success) {
+      if (data.hasCookie) {
+        sessionStatusMsg.className = 'p-2.5 rounded-lg text-xs font-medium bg-emerald-50 text-emerald-800 border border-emerald-200';
+        sessionStatusMsg.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-600 mr-1.5"></i> Sesión actualmente activa en el servidor. ${data.lastPing ? '(Último ping: ' + new Date(data.lastPing).toLocaleTimeString() + ')' : ''}`;
+      } else {
+        sessionStatusMsg.className = 'p-2.5 rounded-lg text-xs font-medium bg-amber-50 text-amber-800 border border-amber-200';
+        sessionStatusMsg.innerHTML = '<i class="fa-solid fa-triangle-exclamation text-amber-600 mr-1.5"></i> No hay cookie configurada en el servidor.';
+      }
+    }
+  } catch (e) {
+    console.error('Error fetching session status:', e);
+  }
+}
+
+function closeSessionModal() {
+  if (sessionModal) sessionModal.classList.remove('open');
+}
+
+async function handleSaveSessionCookie() {
+  const cookie = (sessionCookieInput.value || '').trim();
+  if (!cookie) {
+    showToast('Ingresá una cookie válida', 'error');
+    return;
+  }
+
+  saveSessionCookieBtn.disabled = true;
+  saveSessionCookieBtn.innerHTML = '<i class="fa-solid fa-circle-notch animate-spin"></i> Verificando...';
+
+  try {
+    const res = await fetch('/api/entregar/session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cookie })
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      showToast('Sesión de Entregar actualizada con éxito', 'success');
+      closeSessionModal();
+      sessionCookieInput.value = '';
+    } else {
+      showToast(data.message || 'Error al guardar la cookie', 'error');
+    }
+  } catch (err) {
+    showToast(`Error de conexión: ${err.message}`, 'error');
+  } finally {
+    saveSessionCookieBtn.disabled = false;
+    saveSessionCookieBtn.innerHTML = '<span>Guardar y Verificar</span>';
+  }
 }
 
 // ==========================================================================
@@ -578,9 +792,12 @@ function renderRecentSearches() {
     btn.type = 'button';
     btn.className = 'bg-slate-100 hover:bg-slate-200 text-slate-800 font-mono-code text-xs px-2.5 py-1.5 rounded-lg transition flex items-center gap-1.5 cursor-pointer border border-slate-200/60';
     
-    const carrierBadge = item.carrier === 'andreani' 
-      ? '<span class="text-[9px] font-bold text-blue-700 bg-blue-100/80 px-1 py-0.5 rounded">AND</span>'
-      : '<span class="text-[9px] font-bold text-red-700 bg-red-100/80 px-1 py-0.5 rounded">URB</span>';
+    let carrierBadge = '<span class="text-[9px] font-bold text-red-700 bg-red-100/80 px-1 py-0.5 rounded">URB</span>';
+    if (item.carrier === 'andreani') {
+      carrierBadge = '<span class="text-[9px] font-bold text-blue-700 bg-blue-100/80 px-1 py-0.5 rounded">AND</span>';
+    } else if (item.carrier === 'entregar') {
+      carrierBadge = '<span class="text-[9px] font-bold text-emerald-700 bg-emerald-100/80 px-1 py-0.5 rounded">ENT</span>';
+    }
 
     btn.innerHTML = `${carrierBadge}<span>${escapeHtml(item.order)}</span>`;
     btn.addEventListener('click', () => {
@@ -666,10 +883,15 @@ function renderBatchResults(results) {
       ? `<span class="text-xs font-semibold px-2.5 py-0.5 rounded-full border ${badgeColor}">${escapeHtml(item.statusLabel || item.summary.estadoRaw || 'En proceso')}</span>`
       : `<span class="text-xs font-semibold px-2.5 py-0.5 rounded-full border bg-red-50 text-red-800 border-red-200">No encontrado</span>`;
 
-    const carrierName = item.carrier === 'andreani' ? 'Andreani' : 'Urbano';
-    const carrierTag = item.carrier === 'andreani' 
-      ? '<span class="text-[10px] font-bold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200">Andreani</span>'
-      : '<span class="text-[10px] font-bold text-red-700 bg-red-50 px-1.5 py-0.5 rounded border border-red-200">Urbano</span>';
+    let carrierName = 'Urbano';
+    let carrierTag = '<span class="text-[10px] font-bold text-red-700 bg-red-50 px-1.5 py-0.5 rounded border border-red-200">Urbano</span>';
+    if (item.carrier === 'andreani') {
+      carrierName = 'Andreani';
+      carrierTag = '<span class="text-[10px] font-bold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200">Andreani</span>';
+    } else if (item.carrier === 'entregar') {
+      carrierName = 'Entregar';
+      carrierTag = '<span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">Entregar</span>';
+    }
 
     tr.innerHTML = `
       <td class="font-mono-code font-bold text-slate-900">${escapeHtml(item.order)}</td>

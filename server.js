@@ -448,6 +448,298 @@ async function trackAndreani(rawOrder) {
 }
 
 // -------------------------------------------------------------
+// TRACKING ENTREGAR (Scriptcase e_transport)
+// -------------------------------------------------------------
+const SESSION_FILE = path.join(__dirname, 'entregar_session.json');
+let cachedEntregarCookie = null;
+let lastEntregarPing = null;
+let lastEntregarPingStatus = null;
+
+function getEntregarCookie() {
+  if (process.env.ENTREGAR_COOKIE) return process.env.ENTREGAR_COOKIE.trim();
+  if (cachedEntregarCookie) return cachedEntregarCookie;
+  try {
+    if (fs.existsSync(SESSION_FILE)) {
+      const parsed = JSON.parse(fs.readFileSync(SESSION_FILE, 'utf8'));
+      if (parsed && parsed.cookie) {
+        cachedEntregarCookie = parsed.cookie.trim();
+        return cachedEntregarCookie;
+      }
+    }
+  } catch (e) {
+    console.error('Error reading session file:', e.message);
+  }
+  return 'PHPSESSID_=bmV0bWFrZT9hMzgwYTZkNmYxYjU1NTUz; PHPSESSID=mjbp0gbjgrfvn8chubmp9kjgtj; sc_actual_lang_GT_TMS=es';
+}
+
+function saveEntregarCookie(cookie) {
+  cachedEntregarCookie = (cookie || '').trim();
+  try {
+    fs.writeFileSync(SESSION_FILE, JSON.stringify({
+      cookie: cachedEntregarCookie,
+      updatedAt: new Date().toISOString()
+    }, null, 2), 'utf8');
+  } catch (e) {
+    console.error('Error saving entregar_session.json:', e.message);
+  }
+}
+
+function pingEntregar() {
+  return new Promise((resolve) => {
+    const cookie = getEntregarCookie();
+    const req = https.get('https://svr.entregar.net.ar/e_transport/MenuPrincipal/MenuPrincipal_pag_ini.php', {
+      headers: {
+        'Cookie': cookie,
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      },
+      timeout: 8000
+    }, (res) => {
+      let body = '';
+      res.on('data', chunk => body += chunk);
+      res.on('end', () => {
+        lastEntregarPing = new Date().toISOString();
+        lastEntregarPingStatus = res.statusCode === 200 && !body.includes('app_Login');
+        resolve({ ok: lastEntregarPingStatus, statusCode: res.statusCode });
+      });
+    });
+    req.on('timeout', () => {
+      req.destroy();
+      resolve({ ok: false, error: 'timeout' });
+    });
+    req.on('error', (err) => {
+      resolve({ ok: false, error: err.message });
+    });
+  });
+}
+
+function parseEntregarHtml(content) {
+  const rowMatches = [...content.matchAll(/id_sc_field_idempresa_(\d+)/g)];
+  if (!rowMatches.length) return [];
+
+  const pedidos = [];
+
+  for (let idx = 0; idx < rowMatches.length; idx++) {
+    const rowNum = rowMatches[idx][1];
+    const startIndex = rowMatches[idx].index;
+    const endIndex = idx + 1 < rowMatches.length ? rowMatches[idx + 1].index : content.length;
+    const rowChunk = content.substring(startIndex, endIndex);
+
+    const getField = (name) => {
+      const regex = new RegExp(`(<td[^>]*>[\\s\\S]*?id_sc_field_${name}_${rowNum}[^>]*>([\\s\\S]*?)<\\/(?:span|a)>[\\s\\S]*?<\\/td>)`, 'gi');
+      const matches = [...rowChunk.matchAll(regex)];
+      if (!matches.length) return '';
+      const mainCell = matches.find(m => !m[1].includes('grid_evento_pedido')) || matches[matches.length - 1];
+      const tagMatch = mainCell[1].match(new RegExp(`id_sc_field_${name}_${rowNum}[^>]*>([\\s\\S]*?)<\\/(?:span|a)>`, 'i'));
+      return tagMatch ? cleanHtml(tagMatch[1]) : '';
+    };
+
+    // Eventos
+    const events = [];
+    const eventTableMatch = rowChunk.match(/<table[^>]*grid_evento_pedido[^>]*>([\s\S]*?)<\/table>/i);
+    if (eventTableMatch) {
+      const eventTableHtml = eventTableMatch[1];
+      const evMatches = [...eventTableHtml.matchAll(/id_sc_field_idevento_\d+[^>]*>([\s\S]*?)<\/span>/g)];
+      const dateMatches = [...eventTableHtml.matchAll(/id_sc_field_fecha_evento_\d+[^>]*>([\s\S]*?)<\/span>/g)];
+      const motivoMatches = [...eventTableHtml.matchAll(/id_sc_field_idmotivo_\d+[^>]*>([\s\S]*?)<\/span>/g)];
+      const obsMatches = [...eventTableHtml.matchAll(/id_sc_field_observaciones_\d+[^>]*>([\s\S]*?)<\/span>/g)];
+
+      evMatches.forEach((evM, eIdx) => {
+        const estado = cleanHtml(evM[1]);
+        const fecha = dateMatches[eIdx] ? cleanHtml(dateMatches[eIdx][1]) : '';
+        const motivo = motivoMatches[eIdx] ? cleanHtml(motivoMatches[eIdx][1]) : '';
+        const obs = obsMatches[eIdx] ? cleanHtml(obsMatches[eIdx][1]) : '';
+        if (estado) {
+          events.push({
+            phase: motivo && motivo !== '&nbsp;' ? motivo : 'Entregar',
+            status: estado,
+            date: fecha,
+            time: '',
+            agency: getField('idexpreso') || 'Transportes Entregar',
+            description: obs && obs !== '&nbsp;' ? obs : ''
+          });
+        }
+      });
+    }
+
+    const rawStatus = getField('idstatus') || '';
+    const rawStatusUpper = rawStatus.toUpperCase();
+    let statusCategory = 'in_transit';
+    let statusLabel = rawStatus || 'En proceso';
+
+    if (rawStatusUpper.includes('ENTREGADO') || rawStatusUpper.includes('RECIBIDO DC') || rawStatusUpper.includes('RENDIDO')) {
+      statusCategory = 'delivered';
+      statusLabel = rawStatusUpper.includes('RECIBIDO DC') ? 'Recibido en depósito central' : 'Entregado';
+    } else if (rawStatusUpper.includes('TRANSITO') || rawStatusUpper.includes('CABECERA') || rawStatusUpper.includes('TERMINAL') || rawStatusUpper.includes('EXPRESO')) {
+      statusCategory = 'in_transit';
+      statusLabel = 'En tránsito';
+    } else if (rawStatusUpper.includes('STOCK') || rawStatusUpper.includes('PROCESO') || rawStatusUpper.includes('PREPARADO') || rawStatusUpper.includes('CARTA PORTE')) {
+      statusCategory = 'received';
+      statusLabel = 'En preparación / depósito';
+    } else if (rawStatusUpper.includes('INCIDENCIA') || rawStatusUpper.includes('RECHAZ')) {
+      statusCategory = 'incident';
+      statusLabel = 'Con incidencia';
+    } else if (rawStatusUpper.includes('PENDIENTE')) {
+      statusCategory = 'received';
+      statusLabel = 'Pendiente de retiro';
+    }
+
+    pedidos.push({
+      idpedido: getField('idpedido'),
+      empresa: getField('idempresa'),
+      operacion: getField('idtipo_operacion'),
+      operacionActual: getField('idtipo_operacion_actual'),
+      referencia: getField('idreferencia') || getField('varchar_aux2'),
+      remito: getField('nro_remito'),
+      servicio: getField('idtipo_servicio'),
+      destinatario: getField('nombre'),
+      fechaInterfaz: getField('fecha_interfaz'),
+      zona: getField('zona'),
+      expreso: getField('idexpreso'),
+      status: rawStatus,
+      statusCategory,
+      statusLabel,
+      fechaStatus: getField('fecha_status'),
+      direccion: [getField('direccion'), getField('idlocalidad'), getField('idprovincia')].filter(Boolean).join(', '),
+      bultos: getField('cantidad_bultos'),
+      peso: getField('peso_total_kg'),
+      producto: getField('descripcion'),
+      events
+    });
+  }
+
+  return pedidos;
+}
+
+async function trackEntregar(rawOrder) {
+  const code = (rawOrder || '').trim();
+  const cookie = getEntregarCookie();
+  const officialUrl = 'https://svr.entregar.net.ar/e_transport/grid_view_consulta_pedidos/';
+
+  const postData = `nmgp_fast_search=SC_all_Cmp&nmgp_cond_fast_search=qp&nmgp_arg_fast_search=${encodeURIComponent(code)}&script_case_init=491&nmgp_opcao=fast_search`;
+
+  return new Promise((resolve) => {
+    const req = https.request({
+      hostname: 'svr.entregar.net.ar',
+      port: 443,
+      path: '/e_transport/grid_view_consulta_pedidos/index.php',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+        'Content-Length': Buffer.byteLength(postData),
+        'Cookie': cookie,
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Origin': 'https://svr.entregar.net.ar',
+        'Referer': officialUrl,
+        'X-Requested-With': 'XMLHttpRequest'
+      },
+      timeout: 10000
+    }, (res) => {
+      let body = '';
+      res.on('data', chunk => body += chunk);
+      res.on('end', () => {
+        if (body.includes('app_Login') || body.includes('id="id_form_app_Login"') || body.includes('session_timeout')) {
+          return resolve({
+            success: false,
+            carrier: 'entregar',
+            order: code,
+            officialUrl,
+            needSession: true,
+            message: 'La sesión de Entregar ha expirado. Es necesario renovar la cookie de acceso.'
+          });
+        }
+
+        const pedidos = parseEntregarHtml(body);
+        if (!pedidos || pedidos.length === 0) {
+          return resolve({
+            success: false,
+            carrier: 'entregar',
+            order: code,
+            officialUrl,
+            message: 'No se encontró ningún envío asociado a este código en Entregar.'
+          });
+        }
+
+        const primary = pedidos[0];
+
+        resolve({
+          success: true,
+          carrier: 'entregar',
+          order: code,
+          guiaNumero: primary.remito || primary.idpedido,
+          referenciaEnvio: primary.referencia || code,
+          officialUrl,
+          statusCategory: primary.statusCategory,
+          statusLabel: primary.statusLabel,
+          summary: {
+            guiaNumero: primary.remito || primary.idpedido,
+            clienteCodigo: primary.destinatario || code,
+            remitente: primary.empresa ? `Empresa ${primary.empresa}` : 'BGH / Entregar',
+            linea: primary.expreso || 'Transportes Entregar',
+            producto: primary.producto || 'Mercadería general',
+            servicio: [primary.servicio, primary.operacion].filter(Boolean).join(' • ') || 'Distribución Entregar',
+            fechaEstado: primary.fechaStatus
+          },
+          detail: {
+            referencia: primary.referencia,
+            remito: primary.remito,
+            operacion: primary.operacion,
+            destinatario: primary.destinatario,
+            direccion: primary.direccion,
+            bultos: primary.bultos,
+            peso: primary.peso,
+            zona: primary.zona
+          },
+          movements: primary.events,
+          allOrders: pedidos.map(p => ({
+            idpedido: p.idpedido,
+            empresa: p.empresa,
+            operacion: p.operacion,
+            referencia: p.referencia,
+            remito: p.remito,
+            destinatario: p.destinatario,
+            status: p.status,
+            statusCategory: p.statusCategory,
+            statusLabel: p.statusLabel,
+            fechaStatus: p.fechaStatus,
+            direccion: p.direccion,
+            expreso: p.expreso,
+            servicio: p.servicio,
+            bultos: p.bultos,
+            peso: p.peso,
+            producto: p.producto,
+            movements: p.events
+          }))
+        });
+      });
+    });
+
+    req.on('timeout', () => {
+      req.destroy();
+      resolve({
+        success: false,
+        carrier: 'entregar',
+        order: code,
+        officialUrl,
+        message: 'Tiempo de espera agotado al consultar los servidores de Entregar.'
+      });
+    });
+
+    req.on('error', (err) => {
+      resolve({
+        success: false,
+        carrier: 'entregar',
+        order: code,
+        officialUrl,
+        message: `Error de red al conectar con Entregar: ${err.message}`
+      });
+    });
+
+    req.write(postData);
+    req.end();
+  });
+}
+
+// -------------------------------------------------------------
 // SERVIDOR HTTP
 // -------------------------------------------------------------
 const server = http.createServer(async (req, res) => {
@@ -465,6 +757,43 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // API: GET /api/entregar/session
+  if (req.method === 'GET' && pathname === '/api/entregar/session') {
+    const hasCookie = Boolean(getEntregarCookie());
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      success: true,
+      hasCookie,
+      lastPing: lastEntregarPing,
+      lastPingStatus: lastEntregarPingStatus
+    }));
+    return;
+  }
+
+  // API: POST /api/entregar/session
+  if (req.method === 'POST' && pathname === '/api/entregar/session') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', async () => {
+      try {
+        const { cookie } = JSON.parse(body || '{}');
+        if (!cookie || typeof cookie !== 'string') {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, message: 'Se requiere la cookie en el body' }));
+          return;
+        }
+        saveEntregarCookie(cookie);
+        const testRes = await pingEntregar();
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, verified: testRes.ok }));
+      } catch (e) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, message: 'Error procesando solicitud' }));
+      }
+    });
+    return;
+  }
+
   // API: GET /api/track
   if (req.method === 'GET' && pathname === '/api/track') {
     const order = (parsedUrl.query.order || '').trim();
@@ -479,7 +808,9 @@ const server = http.createServer(async (req, res) => {
 
     // Auto-detección inteligente si no viene forzado
     if (!carrier) {
-      if (order.startsWith('2000') || order.startsWith('4004') || (/^\d{15,16}$/.test(order))) {
+      if (order.includes('-0') || /^\d{13}-\d{2}$/.test(order) || order.startsWith('ZRE') || order.startsWith('ZECH') || order.startsWith('ZECO')) {
+        carrier = 'entregar';
+      } else if (order.startsWith('2000') || order.startsWith('4004') || (/^\d{15,16}$/.test(order))) {
         carrier = 'andreani';
       } else {
         carrier = 'urbano';
@@ -489,6 +820,8 @@ const server = http.createServer(async (req, res) => {
     let result;
     if (carrier === 'andreani') {
       result = await trackAndreani(order);
+    } else if (carrier === 'entregar') {
+      result = await trackEntregar(order);
     } else {
       result = await trackUrbano(order, shipper);
     }
@@ -517,7 +850,9 @@ const server = http.createServer(async (req, res) => {
         for (const ord of limited) {
           const cleanOrd = ord.trim();
           let r;
-          if (carrier === 'andreani' || cleanOrd.startsWith('2000') || cleanOrd.startsWith('4004')) {
+          if (carrier === 'entregar' || cleanOrd.includes('-0') || cleanOrd.startsWith('ZRE') || cleanOrd.startsWith('ZECH') || cleanOrd.startsWith('ZECO')) {
+            r = await trackEntregar(cleanOrd);
+          } else if (carrier === 'andreani' || cleanOrd.startsWith('2000') || cleanOrd.startsWith('4004')) {
             r = await trackAndreani(cleanOrd);
           } else {
             r = await trackUrbano(cleanOrd, shipper);
@@ -573,9 +908,16 @@ const HOST = '0.0.0.0';
 function startServer(port) {
   const s = server.listen(port, HOST, () => {
     console.log(`====================================================`);
-    console.log(`  Página sin nombre - Seguimiento Urbano & Andreani`);
+    console.log(`  Página sin nombre - Seguimiento Urbano, Andreani & Entregar`);
     console.log(`  👉 Servidor listo en: http://localhost:${port}`);
     console.log(`====================================================`);
+
+    // Iniciar ping de keepalive para mantener activa la sesión de Entregar (cada 10 minutos)
+    setInterval(() => {
+      pingEntregar().then(res => {
+        if (!res.ok) console.log('[Entregar] Keepalive aviso: sesión requiere renovación');
+      }).catch(() => {});
+    }, 10 * 60 * 1000);
   });
 
   s.on('error', (err) => {

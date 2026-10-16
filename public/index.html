@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Página sin nombre | Seguimiento de Envíos Urbano y Andreani</title>
+  <title>Página sin nombre | Seguimiento Urbano, Andreani y Entregar</title>
   <link rel="icon" type="image/svg+xml" href="logo.svg">
   
   <!-- Font Awesome Icons & Tailwind CDN -->
@@ -61,6 +61,16 @@
             <span class="carrier-dot"></span>
             <span>Andreani</span>
           </button>
+
+          <button 
+            id="carrierEntregarBtn" 
+            type="button" 
+            class="carrier-pill-btn is-entregar"
+            title="Consultar envíos en Entregar"
+          >
+            <span class="carrier-dot"></span>
+            <span>Entregar</span>
+          </button>
         </div>
 
         <!-- Cuenta Despacho Fija (Urbano) -->
@@ -73,6 +83,17 @@
           <span class="text-slate-500 font-medium">Cuenta:</span>
           <strong class="font-mono-code text-slate-900 font-bold">004185</strong>
         </div>
+
+        <!-- Botón de Sesión Entregar -->
+        <button 
+          id="entregarSessionBtn" 
+          type="button" 
+          class="hidden text-xs text-slate-600 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 px-2.5 py-1.5 rounded-lg transition items-center gap-1.5 cursor-pointer"
+          title="Verificar o renovar cookie de sesión en Entregar"
+        >
+          <i class="fa-solid fa-key text-[10px] text-emerald-600"></i>
+          <span class="hidden sm:inline">Sesión</span>
+        </button>
 
       </div>
 
@@ -190,9 +211,23 @@
       </div>
 
       <!-- ====================================================================
-           RESULTADO DEL SEGUIMIENTO (URBANO Y ANDREANI)
+           RESULTADO DEL SEGUIMIENTO (URBANO, ANDREANI Y ENTREGAR)
            ==================================================================== -->
       <div id="resultBox" class="hidden space-y-6">
+
+        <!-- Selector de Sub-Envíos (múltiples tramos como Despacho y Retiro en Entregar) -->
+        <div id="subOrdersContainer" class="hidden card-clean p-4 bg-slate-50/80 space-y-2.5 border-slate-200">
+          <div class="flex items-center justify-between text-xs text-slate-700 font-bold">
+            <span class="flex items-center gap-1.5">
+              <i class="fa-solid fa-boxes-stacked text-emerald-600"></i>
+              <span>Envíos vinculados a esta orden (<span id="subOrdersCount">0</span>):</span>
+            </span>
+            <span class="text-[11px] text-slate-400 font-normal">Hacé clic en un tramo para ver su historial</span>
+          </div>
+          <div id="subOrdersList" class="suborders-bar">
+            <!-- Píldoras dinámicas generadas con JS -->
+          </div>
+        </div>
 
         <!-- Tarjeta Principal del Paquete -->
         <div class="card-clean overflow-hidden">
@@ -445,11 +480,54 @@
     <span id="toastMessage">Texto copiado al portapapeles</span>
   </div>
 
+  <!-- Modal para Configurar o Renovar Sesión de Entregar -->
+  <div id="sessionModal" class="modal-overlay">
+    <div class="modal-card p-6">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+            <i class="fa-solid fa-key text-xs"></i>
+          </div>
+          <div>
+            <h4 class="text-sm font-bold text-slate-900">Sesión de Entregar</h4>
+            <p class="text-[11px] text-slate-400">Administrador de cookie activa</p>
+          </div>
+        </div>
+        <button id="closeSessionModalBtn" type="button" class="text-slate-400 hover:text-slate-600 p-1">
+          <i class="fa-solid fa-xmark text-sm"></i>
+        </button>
+      </div>
+
+      <div class="mt-4 space-y-3 text-xs text-slate-600">
+        <p class="leading-relaxed">
+          Para consultar la plataforma <strong>svr.entregar.net.ar</strong>, se utiliza la cookie de sesión activa. La sesión se mantiene viva de fondo automáticamente.
+        </p>
+        <div>
+          <label for="sessionCookieInput" class="block font-bold text-slate-800 mb-1">Cookie de sesión (PHPSESSID / PHPSESSID_):</label>
+          <textarea 
+            id="sessionCookieInput" 
+            rows="3" 
+            class="w-full p-2.5 border border-slate-300 rounded-lg font-mono-code text-[11px] text-slate-800 focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-none transition"
+            placeholder="Pegá aquí la cookie de svr.entregar.net.ar..."
+          ></textarea>
+        </div>
+        <div id="sessionStatusMsg" class="hidden p-2.5 rounded-lg text-xs font-medium"></div>
+      </div>
+
+      <div class="mt-5 flex items-center justify-end gap-2.5">
+        <button id="cancelSessionModalBtn" type="button" class="btn-secondary px-3 py-1.5 text-xs">Cerrar</button>
+        <button id="saveSessionCookieBtn" type="button" class="btn-primary-entregar px-4 py-1.5 text-xs">
+          <span>Guardar y Verificar</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Pie de Página -->
   <footer class="mt-auto py-6 text-center text-xs text-slate-400 border-t border-slate-200 bg-white">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-2">
       <p><strong>Página sin nombre</strong> • porque a Jorge no se le ocurre nada</p>
-      <p class="text-[11px] text-slate-400">Rastreador de logística en tiempo real para Urbano Express y Correo Andreani</p>
+      <p class="text-[11px] text-slate-400">Rastreador unificado en tiempo real para Urbano Express, Correo Andreani y Entregar</p>
     </div>
   </footer>
 
