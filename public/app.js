@@ -425,13 +425,57 @@ function renderResult(data) {
       const op = sub.operacion || 'Envío';
       const remitoStr = sub.remito ? `${sub.remito}` : (sub.idpedido ? `#${sub.idpedido}` : '');
       const st = sub.status || 'En proceso';
+      const myRef = cls.shortRef || sub.referencia || '';
+
+      // Armado de la sección de referencias pedida por el usuario:
+      // "debajo de donde dice que es retiro o despacho por cambio ver cuál es el zech y su vinculado el zre7"
+      let refPairSnippet = '';
+      if (cls.isExchange && cls.pairedOrder) {
+        const partnerRef = cls.pairedOrder.shortRef || cls.pairedOrder.referencia;
+        refPairSnippet = `
+          <div class="suborder-ref-row">
+            <span class="suborder-ref-current" title="Referencia completa: ${escapeHtml(sub.referencia)}">${escapeHtml(myRef)}</span>
+            <span class="suborder-ref-sep">↔</span>
+            <span class="suborder-ref-linked" title="Vinculado con: ${escapeHtml(cls.pairedOrder.referencia)} (Remito ${escapeHtml(cls.pairedOrder.remito || '')})">
+              <i class="fa-solid fa-link text-[9px]"></i>
+              <span>Vinc: <strong>${escapeHtml(partnerRef)}</strong></span>
+            </span>
+          </div>
+        `;
+      } else if (cls.code === 'ZECO') {
+        refPairSnippet = `
+          <div class="suborder-ref-row">
+            <span class="suborder-ref-current" title="Referencia completa: ${escapeHtml(sub.referencia)}">${escapeHtml(myRef)}</span>
+            <span class="suborder-ref-single-tag text-emerald-700 bg-emerald-50 border border-emerald-200">Entrega original</span>
+          </div>
+        `;
+      } else if (cls.code === 'ZRE2') {
+        refPairSnippet = `
+          <div class="suborder-ref-row">
+            <span class="suborder-ref-current" title="Referencia completa: ${escapeHtml(sub.referencia)}">${escapeHtml(myRef)}</span>
+            <span class="suborder-ref-single-tag text-rose-700 bg-rose-50 border border-rose-200">Devolución directa</span>
+          </div>
+        `;
+      } else if (myRef) {
+        refPairSnippet = `
+          <div class="suborder-ref-row">
+            <span class="suborder-ref-current">${escapeHtml(myRef)}</span>
+          </div>
+        `;
+      }
 
       pill.innerHTML = `
         <span class="suborder-dot"></span>
         ${badgeSnippet}
         <span class="suborder-text">
-          <span class="suborder-title">${escapeHtml(cls.label || op)}</span>
-          <span class="suborder-sub">${escapeHtml(remitoStr)} • <strong>${escapeHtml(st)}</strong></span>
+          <div class="suborder-top-row">
+            <span class="suborder-title">${escapeHtml(cls.label || op)}</span>
+            <span class="suborder-status-tag">${escapeHtml(st)}</span>
+          </div>
+          ${refPairSnippet}
+          <div class="suborder-sub">
+            <span>Remito: <strong>${escapeHtml(remitoStr || 'S/N')}</strong></span>
+          </div>
         </span>
       `;
 
@@ -524,7 +568,7 @@ function applySubOrderData(data, subOrder) {
     }
     operationalIconBox.innerHTML = iconHtml;
 
-    operationalTitle.textContent = cls.label || 'Envío Entregar';
+    operationalTitle.textContent = cls.shortRef ? `${cls.label} (${cls.shortRef})` : (cls.label || 'Envío Entregar');
     operationalCodeBadge.textContent = cls.code || 'BGH';
 
     // Referencia de texto auxiliar
@@ -536,14 +580,14 @@ function applySubOrderData(data, subOrder) {
       operationalAuxBadge.classList.add('hidden');
     }
 
-    operationalDescription.textContent = cls.description || '';
-
     // Manejo de tramo vinculado de cambio (ZECH <-> ZRE7)
     if (cls.pairedOrder && cls.pairedOrder.index !== undefined) {
       const paired = cls.pairedOrder;
-      operationalLinkedAction.classList.remove('hidden');
       const targetLabel = paired.type === 'swap_pickup' ? 'Retiro' : 'Despacho';
-      const targetIdentifier = paired.remito || paired.referencia || `#${paired.idpedido}`;
+      const targetIdentifier = paired.shortRef || paired.remito || paired.referencia || `#${paired.idpedido}`;
+      operationalDescription.textContent = `${cls.description} Vinculado operativamente al ${targetLabel.toLowerCase()} ${targetIdentifier} (Remito ${paired.remito || 'S/N'}). Ambos deben coordinarse simultáneamente.`;
+
+      operationalLinkedAction.classList.remove('hidden');
       goToLinkedLegText.textContent = `Ver ${targetLabel} (${targetIdentifier})`;
       
       goToLinkedLegBtn.onclick = () => {
@@ -559,6 +603,7 @@ function applySubOrderData(data, subOrder) {
         }
       };
     } else {
+      operationalDescription.textContent = cls.description || '';
       operationalLinkedAction.classList.add('hidden');
     }
   } else {

@@ -512,14 +512,25 @@ function pingEntregar() {
   });
 }
 
+function getShortRef(ref) {
+  if (!ref) return '';
+  const match = String(ref).trim().match(/^(ZECO|ZECH|ZRE7|ZRE2)_0*(\d+)/i);
+  if (match) {
+    return `${match[1].toUpperCase()} ${match[2]}`;
+  }
+  return String(ref).trim();
+}
+
 function classifyEntregarRef(ref, aux1, aux2) {
   const r = (ref || '').toUpperCase();
+  const shortRef = getShortRef(ref);
   if (r.startsWith('ZECO')) {
     return {
       code: 'ZECO',
       type: 'original',
       label: 'Entrega Original',
       badgeText: '📦 Entrega Original (ZECO)',
+      shortRef,
       description: 'Envío inicial de la compra por primera vez al cliente.',
       isExchange: false
     };
@@ -530,6 +541,7 @@ function classifyEntregarRef(ref, aux1, aux2) {
       type: 'swap_dispatch',
       label: 'Despacho por Cambio',
       badgeText: '🔄 Despacho Cambio (ZECH)',
+      shortRef,
       description: 'Despacho de producto nuevo por cambio contra entrega (se entrega el nuevo y se retira el producto anterior).',
       isExchange: true,
       linkedInfo: aux2 || ''
@@ -541,6 +553,7 @@ function classifyEntregarRef(ref, aux1, aux2) {
       type: 'swap_pickup',
       label: 'Retiro por Cambio',
       badgeText: '🔄 Retiro Cambio (ZRE7)',
+      shortRef,
       description: 'Retiro de producto defectuoso/dañado por cambio contra entrega (debe realizarse junto con la entrega del nuevo).',
       isExchange: true,
       linkedInfo: aux2 || ''
@@ -552,6 +565,7 @@ function classifyEntregarRef(ref, aux1, aux2) {
       type: 'return_pickup',
       label: 'Retiro por Devolución Directa',
       badgeText: '↩️ Devolución Directa (ZRE2)',
+      shortRef,
       description: 'Retiro del producto devuelto por el cliente sin entrega de producto de reemplazo.',
       isExchange: false
     };
@@ -561,6 +575,7 @@ function classifyEntregarRef(ref, aux1, aux2) {
     type: 'general',
     label: 'Envío General',
     badgeText: 'Envío General',
+    shortRef,
     description: '',
     isExchange: false
   };
@@ -571,7 +586,10 @@ function linkExchangePairs(pedidos) {
 
   for (let i = 0; i < pedidos.length; i++) {
     const p = pedidos[i];
-    if (!p.classification || !p.classification.isExchange) continue;
+    if (!p.classification) continue;
+    p.classification.shortRef = getShortRef(p.referencia);
+
+    if (!p.classification.isExchange) continue;
 
     const myCode = p.classification.code; // 'ZECH' or 'ZRE7'
     const targetCode = myCode === 'ZECH' ? 'ZRE7' : 'ZECH';
@@ -637,6 +655,7 @@ function linkExchangePairs(pedidos) {
         index: partnerIdx,
         idpedido: partner.idpedido,
         referencia: partner.referencia,
+        shortRef: getShortRef(partner.referencia),
         remito: partner.remito,
         operacion: partner.operacion,
         status: partner.status,
