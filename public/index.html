@@ -197,15 +197,31 @@
           <div class="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center text-red-600 shrink-0">
             <i class="fa-solid fa-circle-exclamation text-sm"></i>
           </div>
-          <div>
+          <div class="flex-1">
             <h4 class="text-sm font-bold text-slate-900">No se encontraron datos del envío</h4>
             <p id="errorMessage" class="text-xs text-slate-600 mt-1 leading-relaxed"></p>
-            <div class="mt-3.5">
+            <div class="mt-3.5 flex items-center gap-3 flex-wrap">
               <a id="errorOfficialLink" href="#" target="_blank" class="text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline inline-flex items-center gap-1.5">
                 <span>Abrir consulta en el portal oficial</span>
                 <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
               </a>
             </div>
+
+            <!-- Sugerencias para buscar en otros transportistas (ej: cambios en Entregar) -->
+            <div id="errorCrossCarrierSuggestions" class="mt-4 pt-3.5 border-t border-red-200/80 flex items-center gap-2 flex-wrap text-xs">
+              <span class="text-slate-600 font-medium">¿Querés probar en otro correo?</span>
+              <button type="button" id="errorTryEntregarBtn" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs inline-flex items-center gap-1.5 transition cursor-pointer shadow-xs">
+                <i class="fa-solid fa-arrows-rotate text-[10px]"></i>
+                <span>Buscar cambio en Entregar</span>
+              </button>
+              <button type="button" id="errorTryAndreaniBtn" class="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs inline-flex items-center gap-1.5 transition cursor-pointer shadow-xs">
+                <span>Buscar en Andreani</span>
+              </button>
+              <button type="button" id="errorTryUrbanoBtn" class="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-semibold text-xs inline-flex items-center gap-1.5 transition cursor-pointer shadow-xs">
+                <span>Buscar en Urbano</span>
+              </button>
+            </div>
+
           </div>
         </div>
       </div>
@@ -259,6 +275,17 @@
 
             <!-- Acciones Principales del Envío -->
             <div class="flex items-center gap-2.5 flex-wrap">
+              <!-- Botón cruzado: Buscar cambio en Entregar o viceversa -->
+              <button 
+                id="crossCarrierBtn" 
+                type="button" 
+                class="btn-secondary"
+                title="Consultar si tiene cambio o despacho en otro correo"
+              >
+                <i id="crossCarrierBtnIcon" class="fa-solid fa-arrows-rotate text-xs text-emerald-600"></i>
+                <span id="crossCarrierBtnText">Buscar en Entregar</span>
+              </button>
+
               <button 
                 id="copySummaryBtn" 
                 type="button" 

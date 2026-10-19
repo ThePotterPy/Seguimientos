@@ -80,6 +80,17 @@ const copySummaryText = document.getElementById('copySummaryText');
 const officialLinkBtn = document.getElementById('officialLinkBtn');
 const officialLinkText = document.getElementById('officialLinkText');
 
+// Botón de consulta cruzada entre correos (cambios en Entregar, etc.)
+const crossCarrierBtn = document.getElementById('crossCarrierBtn');
+const crossCarrierBtnIcon = document.getElementById('crossCarrierBtnIcon');
+const crossCarrierBtnText = document.getElementById('crossCarrierBtnText');
+
+// Sugerencias de otros correos en caso de error
+const errorCrossCarrierSuggestions = document.getElementById('errorCrossCarrierSuggestions');
+const errorTryEntregarBtn = document.getElementById('errorTryEntregarBtn');
+const errorTryAndreaniBtn = document.getElementById('errorTryAndreaniBtn');
+const errorTryUrbanoBtn = document.getElementById('errorTryUrbanoBtn');
+
 // Vistas de Movimientos
 const viewTimelineBtn = document.getElementById('viewTimelineBtn');
 const viewTableBtn = document.getElementById('viewTableBtn');
@@ -160,6 +171,38 @@ function init() {
   if (saveSessionCookieBtn) {
     saveSessionCookieBtn.addEventListener('click', handleSaveSessionCookie);
   }
+
+  // Sugerencias de otros correos en errorBox
+  if (errorTryEntregarBtn) {
+    errorTryEntregarBtn.addEventListener('click', () => {
+      const code = orderInput.value.trim();
+      if (code) {
+        userExplicitCarrier = true;
+        setCarrier('entregar', false);
+        performTrack(code);
+      }
+    });
+  }
+  if (errorTryAndreaniBtn) {
+    errorTryAndreaniBtn.addEventListener('click', () => {
+      const code = orderInput.value.trim();
+      if (code) {
+        userExplicitCarrier = true;
+        setCarrier('andreani', false);
+        performTrack(code);
+      }
+    });
+  }
+  if (errorTryUrbanoBtn) {
+    errorTryUrbanoBtn.addEventListener('click', () => {
+      const code = orderInput.value.trim();
+      if (code) {
+        userExplicitCarrier = true;
+        setCarrier('urbano', false);
+        performTrack(code);
+      }
+    });
+  }
 }
 
 // ==========================================================================
@@ -224,14 +267,35 @@ function setCarrier(carrier, clearViews = true) {
   }
 }
 
-carrierUrbanoBtn.addEventListener('click', () => setCarrier('urbano'));
-carrierAndreaniBtn.addEventListener('click', () => setCarrier('andreani'));
-if (carrierEntregarBtn) carrierEntregarBtn.addEventListener('click', () => setCarrier('entregar'));
+let userExplicitCarrier = false;
+
+carrierUrbanoBtn.addEventListener('click', () => {
+  userExplicitCarrier = true;
+  setCarrier('urbano');
+});
+carrierAndreaniBtn.addEventListener('click', () => {
+  userExplicitCarrier = true;
+  setCarrier('andreani');
+});
+if (carrierEntregarBtn) {
+  carrierEntregarBtn.addEventListener('click', () => {
+    userExplicitCarrier = true;
+    setCarrier('entregar');
+  });
+}
 
 // Auto-detección inteligente de courier
 function autoDetectCarrier(code) {
   const trimmed = (code || '').trim();
-  if (trimmed.includes('-0') || /^\d{13}-\d{2}$/.test(trimmed) || trimmed.startsWith('ZRE') || trimmed.startsWith('ZECH') || trimmed.startsWith('ZECO')) {
+  // Referencias exclusivas de Entregar (ZECO, ZECH, ZRE7, ZRE2)
+  if (trimmed.startsWith('ZECO') || trimmed.startsWith('ZECH') || trimmed.startsWith('ZRE7') || trimmed.startsWith('ZRE2')) {
+    return 'entregar';
+  }
+  // Si el usuario eligió explícitamente el transportista, respetarlo siempre
+  if (userExplicitCarrier) {
+    return currentCarrier;
+  }
+  if (trimmed.includes('-0') || /^\d{13}-\d{2}$/.test(trimmed)) {
     return 'entregar';
   }
   if (/^2000\d{10,14}$/.test(trimmed) || trimmed.startsWith('2000') || trimmed.startsWith('4004') || (/^\d{15,16}$/.test(trimmed))) {
@@ -284,11 +348,13 @@ pasteBtn.addEventListener('click', async () => {
     const text = await navigator.clipboard.readText();
     if (text) {
       const code = text.trim();
-      const detected = autoDetectCarrier(code);
-      if (detected !== currentCarrier) {
-        setCarrier(detected, false);
-        const name = detected === 'andreani' ? 'Andreani' : (detected === 'entregar' ? 'Entregar' : 'Urbano');
-        showToast(`Detectado código de ${name}`, 'info');
+      if (!userExplicitCarrier) {
+        const detected = autoDetectCarrier(code);
+        if (detected !== currentCarrier) {
+          setCarrier(detected, false);
+          const name = detected === 'andreani' ? 'Andreani' : (detected === 'entregar' ? 'Entregar' : 'Urbano');
+          showToast(`Detectado código de ${name}`, 'info');
+        }
       }
       orderInput.value = code;
       orderInput.dispatchEvent(new Event('input'));
@@ -306,12 +372,14 @@ orderInput.addEventListener('input', () => {
     clearInputBtn.classList.remove('hidden');
   } else {
     clearInputBtn.classList.add('hidden');
+    userExplicitCarrier = false;
   }
 });
 
 clearInputBtn.addEventListener('click', () => {
   orderInput.value = '';
   clearInputBtn.classList.add('hidden');
+  userExplicitCarrier = false;
   orderInput.focus();
 });
 
@@ -319,11 +387,13 @@ trackForm.addEventListener('submit', (e) => {
   e.preventDefault();
   const order = orderInput.value.trim();
   if (order) {
-    const detected = autoDetectCarrier(order);
-    if (detected !== currentCarrier) {
-      setCarrier(detected, false);
-      const name = detected === 'andreani' ? 'Andreani' : (detected === 'entregar' ? 'Entregar' : 'Urbano');
-      showToast(`Detectado código de ${name}`, 'info');
+    if (!userExplicitCarrier) {
+      const detected = autoDetectCarrier(order);
+      if (detected !== currentCarrier) {
+        setCarrier(detected, false);
+        const name = detected === 'andreani' ? 'Andreani' : (detected === 'entregar' ? 'Entregar' : 'Urbano');
+        showToast(`Detectado código de ${name}`, 'info');
+      }
     }
     performTrack(order);
   }
@@ -401,6 +471,34 @@ function renderResult(data) {
   }
 
   officialLinkBtn.href = data.officialUrl;
+
+  // Configurar botón cruzado de búsqueda rápida entre correos
+  if (crossCarrierBtn) {
+    crossCarrierBtn.classList.remove('hidden');
+    if (carrier !== 'entregar') {
+      crossCarrierBtnIcon.className = 'fa-solid fa-arrows-rotate text-xs text-emerald-600';
+      crossCarrierBtnText.textContent = 'Buscar cambio en Entregar';
+      crossCarrierBtn.title = 'Consultar si este pedido tiene un cambio o retiro registrado en Entregar';
+      crossCarrierBtn.onclick = () => {
+        userExplicitCarrier = true;
+        setCarrier('entregar', false);
+        orderInput.value = data.order;
+        performTrack(data.order);
+      };
+    } else {
+      crossCarrierBtnIcon.className = 'fa-solid fa-truck text-xs text-blue-600';
+      const targetCarrier = (data.order.startsWith('2000') || data.order.startsWith('4004')) ? 'andreani' : 'urbano';
+      const targetName = targetCarrier === 'andreani' ? 'Andreani' : 'Urbano';
+      crossCarrierBtnText.textContent = `Buscar original en ${targetName}`;
+      crossCarrierBtn.title = `Consultar el envío original en ${targetName}`;
+      crossCarrierBtn.onclick = () => {
+        userExplicitCarrier = true;
+        setCarrier(targetCarrier, false);
+        orderInput.value = data.order;
+        performTrack(data.order);
+      };
+    }
+  }
 
   // Manejo de múltiples tramos / sub-órdenes (Despacho / Retiro)
   if (data.allOrders && data.allOrders.length > 1) {
@@ -855,6 +953,25 @@ function showError(msg, officialUrl, needSession = false) {
   } else {
     errorOfficialLink.classList.add('hidden');
   }
+
+  const currentOrder = orderInput.value.trim();
+  if (errorCrossCarrierSuggestions) {
+    if (currentOrder) {
+      errorCrossCarrierSuggestions.classList.remove('hidden');
+      if (errorTryEntregarBtn) {
+        errorTryEntregarBtn.style.display = currentCarrier === 'entregar' ? 'none' : 'inline-flex';
+      }
+      if (errorTryAndreaniBtn) {
+        errorTryAndreaniBtn.style.display = currentCarrier === 'andreani' ? 'none' : 'inline-flex';
+      }
+      if (errorTryUrbanoBtn) {
+        errorTryUrbanoBtn.style.display = currentCarrier === 'urbano' ? 'none' : 'inline-flex';
+      }
+    } else {
+      errorCrossCarrierSuggestions.classList.add('hidden');
+    }
+  }
+
   resultBox.classList.add('hidden');
   errorBox.classList.remove('hidden');
 }

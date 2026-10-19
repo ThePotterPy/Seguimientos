@@ -385,7 +385,10 @@ async function trackAndreani(rawOrder) {
     let statusCategory = 'in_transit';
     let statusLabel = parsed.procesoActual?.titulo || 'En tránsito';
 
-    if (tituloUpper.includes('ENTREGADO')) {
+    if (tituloUpper.includes('NO ENTREGADO') || tituloUpper.includes('NO PUDO') || tituloUpper.includes('VISITADO') || tituloUpper.includes('INCIDENCIA') || tituloUpper.includes('RECHAZ') || tituloUpper.includes('DEVUELTO') || tituloUpper.includes('SINIESTRO') || tituloUpper.includes('FALLID')) {
+      statusCategory = 'incident';
+      statusLabel = parsed.procesoActual?.titulo || 'No entregado';
+    } else if (tituloUpper.includes('ENTREGADO')) {
       statusCategory = 'delivered';
       statusLabel = 'Entregado';
     } else if (tituloUpper.includes('CAMINO') || tituloUpper.includes('DISTRIBUCI')) {
@@ -400,6 +403,17 @@ async function trackAndreani(rawOrder) {
     } else if (tituloUpper.includes('PENDIENTE')) {
       statusCategory = 'received';
       statusLabel = 'Pendiente de ingreso';
+    }
+
+    // Doble verificación con el último movimiento real registrado en Andreani
+    if (movements.length > 0) {
+      const latestMov = movements[movements.length - 1];
+      const latestPhaseUpper = (latestMov.phase || '').toUpperCase();
+      const latestStatusUpper = (latestMov.status || '').toUpperCase();
+      if (latestPhaseUpper.includes('NO ENTREGADO') || latestStatusUpper.includes('NO LOGRAMOS') || latestStatusUpper.includes('NO SE PUDO')) {
+        statusCategory = 'incident';
+        statusLabel = latestMov.phase || 'No entregado';
+      }
     }
 
     const guia = parsed.numeroAndreani || code;
@@ -722,7 +736,10 @@ function parseEntregarHtml(content) {
     let statusCategory = 'in_transit';
     let statusLabel = rawStatus || 'En proceso';
 
-    if (rawStatusUpper.includes('ENTREGADO') || rawStatusUpper.includes('RECIBIDO DC') || rawStatusUpper.includes('RENDIDO')) {
+    if (rawStatusUpper.includes('NO ENTREGADO') || rawStatusUpper.includes('INCIDENCIA') || rawStatusUpper.includes('RECHAZ') || rawStatusUpper.includes('SINIESTRO') || rawStatusUpper.includes('FALLID')) {
+      statusCategory = 'incident';
+      statusLabel = rawStatus || 'Con incidencia';
+    } else if (rawStatusUpper.includes('ENTREGADO') || rawStatusUpper.includes('RECIBIDO DC') || rawStatusUpper.includes('RENDIDO')) {
       statusCategory = 'delivered';
       statusLabel = rawStatusUpper.includes('RECIBIDO DC') ? 'Recibido en depósito central' : 'Entregado';
     } else if (rawStatusUpper.includes('TRANSITO') || rawStatusUpper.includes('CABECERA') || rawStatusUpper.includes('TERMINAL') || rawStatusUpper.includes('EXPRESO')) {
@@ -731,9 +748,6 @@ function parseEntregarHtml(content) {
     } else if (rawStatusUpper.includes('STOCK') || rawStatusUpper.includes('PROCESO') || rawStatusUpper.includes('PREPARADO') || rawStatusUpper.includes('CARTA PORTE')) {
       statusCategory = 'received';
       statusLabel = 'En preparación / depósito';
-    } else if (rawStatusUpper.includes('INCIDENCIA') || rawStatusUpper.includes('RECHAZ')) {
-      statusCategory = 'incident';
-      statusLabel = 'Con incidencia';
     } else if (rawStatusUpper.includes('PENDIENTE')) {
       statusCategory = 'received';
       statusLabel = 'Pendiente de retiro';
