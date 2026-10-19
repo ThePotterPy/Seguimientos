@@ -80,6 +80,12 @@ const copySummaryText = document.getElementById('copySummaryText');
 const officialLinkBtn = document.getElementById('officialLinkBtn');
 const officialLinkText = document.getElementById('officialLinkText');
 
+// Detalle de Productos y Bultos
+const productsSection = document.getElementById('productsSection');
+const productsCountBadge = document.getElementById('productsCountBadge');
+const bultosCountBadge = document.getElementById('bultosCountBadge');
+const productsTableBody = document.getElementById('productsTableBody');
+
 // Botón de consulta cruzada entre correos (cambios en Entregar, etc.)
 const crossCarrierBtn = document.getElementById('crossCarrierBtn');
 const crossCarrierBtnIcon = document.getElementById('crossCarrierBtnIcon');
@@ -562,6 +568,9 @@ function renderResult(data) {
         `;
       }
 
+      const subBultos = sub.bultos || (sub.products && sub.products.length > 0 ? sub.products.reduce((acc, p) => acc + (parseInt(p.bultos, 10) || 0), 0) : '1');
+      const bultosLabel = `${subBultos} ${subBultos === '1' || subBultos === 1 ? 'bulto' : 'bultos'}`;
+
       pill.innerHTML = `
         <span class="suborder-dot"></span>
         ${badgeSnippet}
@@ -571,8 +580,11 @@ function renderResult(data) {
             <span class="suborder-status-tag">${escapeHtml(st)}</span>
           </div>
           ${refPairSnippet}
-          <div class="suborder-sub">
+          <div class="suborder-sub flex items-center justify-between gap-2 mt-1">
             <span>Remito: <strong>${escapeHtml(remitoStr || 'S/N')}</strong></span>
+            <span class="inline-flex items-center gap-1 text-[10px] font-semibold text-slate-600 bg-white/90 px-1.5 py-0.5 rounded border border-slate-200">
+              <i class="fa-solid fa-box text-[9px] text-amber-600"></i> ${bultosLabel}
+            </span>
           </div>
         </span>
       `;
@@ -724,6 +736,68 @@ function applySubOrderData(data, subOrder) {
 
   const prodInfo = isSub ? subOrder.producto : (data.summary.producto || data.detail.producto);
   metaCiclo.textContent = prodInfo ? `Producto: ${prodInfo}` : (data.summary.ciclo ? `Ciclo: ${data.summary.ciclo}` : '');
+
+  // ========================================================================
+  // Renderizar Sección de Productos y Bultos
+  // ========================================================================
+  const products = (isSub ? subOrder.products : data.products) || (data.detail && data.detail.products) || [];
+  let bultosCount = (isSub ? subOrder.bultos : (data.bultos || (data.detail && data.detail.bultos))) || '';
+  
+  if (!bultosCount && products.length > 0) {
+    const sum = products.reduce((acc, p) => acc + (parseInt(p.bultos, 10) || 0), 0);
+    if (sum > 0) bultosCount = sum;
+  }
+  if (!bultosCount) bultosCount = '1';
+
+  if (productsSection) {
+    if (products.length > 0) {
+      productsSection.classList.remove('hidden');
+      productsCountBadge.textContent = `${products.length} ${products.length === 1 ? 'producto' : 'productos'}`;
+      bultosCountBadge.textContent = `${bultosCount} ${bultosCount === '1' || bultosCount === 1 ? 'bulto' : 'bultos'}`;
+      productsTableBody.innerHTML = '';
+
+      products.forEach((prod, pIdx) => {
+        const tr = document.createElement('tr');
+        const codeBadge = prod.codigo 
+          ? `<span class="font-mono-code font-bold text-xs bg-slate-100 text-slate-800 px-2 py-0.5 rounded border border-slate-200 select-all">${escapeHtml(prod.codigo)}</span>`
+          : `<span class="text-slate-400 font-mono-code text-xs">-</span>`;
+        
+        const bultosVal = prod.bultos || '1';
+        const bultosTag = `<span class="inline-flex items-center gap-1.5 text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-900 border border-amber-200"><i class="fa-solid fa-box text-[10px] text-amber-600"></i> ${escapeHtml(bultosVal)} ${bultosVal === '1' ? 'bulto' : 'bultos'}</span>`;
+
+        let metrics = [];
+        if (prod.peso) metrics.push(`${escapeHtml(prod.peso)} kg`);
+        if (prod.volumen) metrics.push(`${escapeHtml(prod.volumen)} m³`);
+        const metricsStr = metrics.length > 0 
+          ? `<span class="font-mono-code text-xs text-slate-600 font-medium">${metrics.join(' • ')}</span>`
+          : `<span class="text-slate-400 text-xs">-</span>`;
+
+        tr.innerHTML = `
+          <td class="font-mono-code text-slate-400 text-xs text-center">${pIdx + 1}</td>
+          <td>${codeBadge}</td>
+          <td class="text-xs font-semibold text-slate-900 leading-relaxed">${escapeHtml(prod.descripcion || 'Producto')}</td>
+          <td class="text-center">${bultosTag}</td>
+          <td class="text-right">${metricsStr}</td>
+        `;
+        productsTableBody.appendChild(tr);
+      });
+    } else if (prodInfo) {
+      productsSection.classList.remove('hidden');
+      productsCountBadge.textContent = '1 producto';
+      bultosCountBadge.textContent = `${bultosCount} ${bultosCount === '1' || bultosCount === 1 ? 'bulto' : 'bultos'}`;
+      productsTableBody.innerHTML = `
+        <tr>
+          <td class="font-mono-code text-slate-400 text-xs text-center">1</td>
+          <td><span class="text-slate-400 font-mono-code text-xs">-</span></td>
+          <td class="text-xs font-semibold text-slate-900 leading-relaxed">${escapeHtml(prodInfo)}</td>
+          <td class="text-center"><span class="inline-flex items-center gap-1.5 text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-900 border border-amber-200"><i class="fa-solid fa-box text-[10px] text-amber-600"></i> ${escapeHtml(bultosCount)} ${bultosCount === '1' || bultosCount === 1 ? 'bulto' : 'bultos'}</span></td>
+          <td class="text-right"><span class="text-slate-400 text-xs">-</span></td>
+        </tr>
+      `;
+    } else {
+      productsSection.classList.add('hidden');
+    }
+  }
 
   // Renderizar Movimientos
   const movements = isSub ? (subOrder.movements || []) : (data.movements || []);
@@ -882,8 +956,9 @@ copySummaryBtn.addEventListener('click', async () => {
   const currentDate = statusDateBadge?.textContent.replace(/[()]/g, '').trim() || '';
 
   let extraLines = '';
+  const activeSub = (d.allOrders && d.selectedSubOrderIndex !== undefined) ? d.allOrders[d.selectedSubOrderIndex] : d;
+
   if (d.carrier === 'entregar') {
-    const activeSub = (d.allOrders && d.selectedSubOrderIndex !== undefined) ? d.allOrders[d.selectedSubOrderIndex] : d;
     const cls = activeSub.classification || d.classification;
     if (cls && cls.label) {
       extraLines += `Operación: ${cls.badgeText || cls.label}\n`;
@@ -892,6 +967,22 @@ copySummaryBtn.addEventListener('click', async () => {
         extraLines += `Vinculado a: ${pairedLabel} ${cls.pairedOrder.referencia} (Remito ${cls.pairedOrder.remito || 'S/N'})\n`;
       }
     }
+  }
+
+  // Detalle de productos y bultos
+  const activeProducts = activeSub.products || d.products || (d.detail && d.detail.products) || [];
+  let activeBultos = activeSub.bultos || d.bultos || (d.detail && d.detail.bultos) || '';
+  if (!activeBultos && activeProducts.length > 0) {
+    activeBultos = activeProducts.reduce((acc, p) => acc + (parseInt(p.bultos, 10) || 0), 0);
+  }
+
+  if (activeProducts.length > 0) {
+    extraLines += `Bultos totales: ${activeBultos || 1}\nProductos (${activeProducts.length}):\n`;
+    activeProducts.forEach(p => {
+      extraLines += `  • ${p.codigo ? `[${p.codigo}] ` : ''}${p.descripcion || 'Producto'} (${p.bultos || 1} bulto${(p.bultos > 1) ? 's' : ''})\n`;
+    });
+  } else if (activeBultos) {
+    extraLines += `Bultos: ${activeBultos}\n`;
   }
 
   const text = `Seguimiento ${carrierName}\nReferencia / Pedido: ${currentRef}\nGuía / Remito: ${currentGuia}\n${extraLines}Remitente: ${currentRemitente}\nEstado: ${currentStatus} ${currentDate ? `(${currentDate})` : ''}\nEnlace oficial: ${currentLink}`;

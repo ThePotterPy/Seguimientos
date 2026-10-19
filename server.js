@@ -227,7 +227,27 @@ async function trackUrbano(rawOrder, rawShipper = '004185') {
         estadoRaw: rowData.estado || '',
         fechaEstado: rowData.fechaEstado || ''
       },
-      detail: detailInfo,
+      detail: {
+        ...detailInfo,
+        bultos: rowData.gui_bultos || '1',
+        peso: rowData.gui_kilos || '',
+        products: [{
+          codigo: rowData.proCodigo || '',
+          descripcion: detailInfo.producto || rowData.proCodigo || 'Paquetería Urbano',
+          bultos: rowData.gui_bultos || '1',
+          peso: rowData.gui_kilos || '',
+          volumen: ''
+        }]
+      },
+      products: [{
+        codigo: rowData.proCodigo || '',
+        descripcion: detailInfo.producto || rowData.proCodigo || 'Paquetería Urbano',
+        bultos: rowData.gui_bultos || '1',
+        peso: rowData.gui_kilos || '',
+        volumen: ''
+      }],
+      bultos: rowData.gui_bultos || '1',
+      peso: rowData.gui_kilos || '',
       movements
     };
   } catch (err) {
@@ -445,8 +465,24 @@ async function trackAndreani(rawOrder) {
         referencia: code,
         remitente: remitente,
         observaciones: cleanHtml(parsed.procesoActual?.observaciones || ''),
-        direccion: parsed.ultimaMilla?.domicilioDestino || 'Nacional'
+        direccion: parsed.ultimaMilla?.domicilioDestino || 'Nacional',
+        bultos: '1',
+        products: [{
+          codigo: '',
+          descripcion: parsed.cliente?.contrato?.descripcion || 'Paquetería Andreani',
+          bultos: '1',
+          peso: '',
+          volumen: ''
+        }]
       },
+      products: [{
+        codigo: '',
+        descripcion: parsed.cliente?.contrato?.descripcion || 'Paquetería Andreani',
+        bultos: '1',
+        peso: '',
+        volumen: ''
+      }],
+      bultos: '1',
       movements
     };
   } catch (err) {
@@ -758,6 +794,54 @@ function parseEntregarHtml(content) {
     const aux2 = getField('varchar_aux2') || '';
     const classification = classifyEntregarRef(refCode, aux1, aux2);
 
+    // Extraer productos detallados de la sub-tabla grid_detalle_pedido
+    const products = [];
+    const prodTableMatch = rowChunk.match(new RegExp('<table[^>]*apl_grid_detalle_pedido#\\?#' + rowNum + '[\\s\\S]*?<\\/table>', 'i'))
+      || rowChunk.match(/<table[^>]*grid_detalle_pedido[^>]*>([\s\S]*?)<\/table>/i);
+
+    if (prodTableMatch) {
+      const tableHtml = prodTableMatch[0];
+      const prodMatches = [...tableHtml.matchAll(/id_sc_field_idproducto_\d+[^>]*>([\s\S]*?)<\/span>/g)];
+      const descMatches = [...tableHtml.matchAll(/id_sc_field_descripcion_\d+[^>]*>([\s\S]*?)<\/span>/g)];
+      const cantMatches = [...tableHtml.matchAll(/id_sc_field_cantidad_\d+[^>]*>([\s\S]*?)<\/span>/g)];
+      const pesoMatches = [...tableHtml.matchAll(/id_sc_field_peso_kg_\d+[^>]*>([\s\S]*?)<\/span>/g)];
+      const volMatches = [...tableHtml.matchAll(/id_sc_field_volumen_m3_\d+[^>]*>([\s\S]*?)<\/span>/g)];
+
+      prodMatches.forEach((p, pIdx) => {
+        const pCode = cleanHtml(p[1]);
+        const desc = cleanHtml(descMatches[pIdx]?.[1]);
+        const cant = cleanHtml(cantMatches[pIdx]?.[1]);
+        const pKg = cleanHtml(pesoMatches[pIdx]?.[1]);
+        const vol = cleanHtml(volMatches[pIdx]?.[1]);
+
+        if (pCode || desc) {
+          products.push({
+            codigo: pCode,
+            descripcion: desc,
+            bultos: cant || '1',
+            peso: pKg || '',
+            volumen: vol || ''
+          });
+        }
+      });
+    }
+
+    if (products.length === 0 && getField('descripcion')) {
+      products.push({
+        codigo: '',
+        descripcion: getField('descripcion'),
+        bultos: getField('cantidad_bultos') || '1',
+        peso: getField('peso_total_kg') || '',
+        volumen: ''
+      });
+    }
+
+    let bultosVal = getField('cantidad_bultos');
+    if (!bultosVal && products.length > 0) {
+      const sumBultos = products.reduce((acc, p) => acc + (parseInt(p.bultos, 10) || 0), 0);
+      if (sumBultos > 0) bultosVal = sumBultos.toString();
+    }
+
     pedidos.push({
       idpedido: getField('idpedido'),
       empresa: getField('idempresa'),
@@ -775,9 +859,10 @@ function parseEntregarHtml(content) {
       statusLabel,
       fechaStatus: getField('fecha_status'),
       direccion: [getField('direccion'), getField('idlocalidad'), getField('idprovincia')].filter(Boolean).join(', '),
-      bultos: getField('cantidad_bultos'),
+      bultos: bultosVal || '1',
       peso: getField('peso_total_kg'),
-      producto: getField('descripcion'),
+      producto: products.length > 0 ? products.map(p => p.descripcion || p.codigo).join(' | ') : getField('descripcion'),
+      products,
       campoAuxiliar1: aux1,
       campoAuxiliar2: aux2,
       classification,
@@ -874,8 +959,12 @@ async function trackEntregar(rawOrder) {
             direccion: primary.direccion,
             bultos: primary.bultos,
             peso: primary.peso,
-            zona: primary.zona
+            zona: primary.zona,
+            products: primary.products || []
           },
+          products: primary.products || [],
+          bultos: primary.bultos,
+          peso: primary.peso,
           movements: primary.events,
           allOrders: pedidos.map(p => {
             const pRef = p.referencia || code;
@@ -897,6 +986,7 @@ async function trackEntregar(rawOrder) {
               bultos: p.bultos,
               peso: p.peso,
               producto: p.producto,
+              products: p.products || [],
               campoAuxiliar1: p.campoAuxiliar1,
               campoAuxiliar2: p.campoAuxiliar2,
               classification: p.classification,
