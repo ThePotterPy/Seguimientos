@@ -512,6 +512,143 @@ function pingEntregar() {
   });
 }
 
+function classifyEntregarRef(ref, aux1, aux2) {
+  const r = (ref || '').toUpperCase();
+  if (r.startsWith('ZECO')) {
+    return {
+      code: 'ZECO',
+      type: 'original',
+      label: 'Entrega Original',
+      badgeText: '📦 Entrega Original (ZECO)',
+      description: 'Envío inicial de la compra por primera vez al cliente.',
+      isExchange: false
+    };
+  }
+  if (r.startsWith('ZECH')) {
+    return {
+      code: 'ZECH',
+      type: 'swap_dispatch',
+      label: 'Despacho por Cambio',
+      badgeText: '🔄 Despacho Cambio (ZECH)',
+      description: 'Despacho de producto nuevo por cambio contra entrega (se entrega el nuevo y se retira el producto anterior).',
+      isExchange: true,
+      linkedInfo: aux2 || ''
+    };
+  }
+  if (r.startsWith('ZRE7')) {
+    return {
+      code: 'ZRE7',
+      type: 'swap_pickup',
+      label: 'Retiro por Cambio',
+      badgeText: '🔄 Retiro Cambio (ZRE7)',
+      description: 'Retiro de producto defectuoso/dañado por cambio contra entrega (debe realizarse junto con la entrega del nuevo).',
+      isExchange: true,
+      linkedInfo: aux2 || ''
+    };
+  }
+  if (r.startsWith('ZRE2')) {
+    return {
+      code: 'ZRE2',
+      type: 'return_pickup',
+      label: 'Retiro por Devolución Directa',
+      badgeText: '↩️ Devolución Directa (ZRE2)',
+      description: 'Retiro del producto devuelto por el cliente sin entrega de producto de reemplazo.',
+      isExchange: false
+    };
+  }
+  return {
+    code: 'OTRO',
+    type: 'general',
+    label: 'Envío General',
+    badgeText: 'Envío General',
+    description: '',
+    isExchange: false
+  };
+}
+
+function linkExchangePairs(pedidos) {
+  if (!Array.isArray(pedidos) || pedidos.length < 2) return;
+
+  for (let i = 0; i < pedidos.length; i++) {
+    const p = pedidos[i];
+    if (!p.classification || !p.classification.isExchange) continue;
+
+    const myCode = p.classification.code; // 'ZECH' or 'ZRE7'
+    const targetCode = myCode === 'ZECH' ? 'ZRE7' : 'ZECH';
+    const aux2 = (p.campoAuxiliar2 || '').toUpperCase();
+
+    // 1. Extraer número objetivo de aux2 (ej: "1665981227714-01 ZRe7 60090180" -> "60090180")
+    const targetMatch = aux2.match(new RegExp(`${targetCode}\\s*(\\d+)`, 'i'));
+    const targetNum = targetMatch ? targetMatch[1] : null;
+
+    let partner = null;
+    let partnerIdx = -1;
+
+    if (targetNum) {
+      for (let j = 0; j < pedidos.length; j++) {
+        if (i === j) continue;
+        const other = pedidos[j];
+        if (other.classification && other.classification.code === targetCode) {
+          const otherRef = (other.referencia || '').toUpperCase();
+          if (otherRef.includes(targetNum)) {
+            partner = other;
+            partnerIdx = j;
+            break;
+          }
+        }
+      }
+    }
+
+    // 2. Si no se encontró por aux2 propio, buscar si algún otro pedido menciona el número de este en su aux2
+    if (!partner) {
+      const myRef = (p.referencia || '').toUpperCase();
+      const myNumMatch = myRef.match(/(?:ZECH|ZRE7)_0*(\d+)/i);
+      const myNum = myNumMatch ? myNumMatch[1] : null;
+
+      if (myNum) {
+        for (let j = 0; j < pedidos.length; j++) {
+          if (i === j) continue;
+          const other = pedidos[j];
+          if (other.classification && other.classification.code === targetCode) {
+            const otherAux2 = (other.campoAuxiliar2 || '').toUpperCase();
+            if (otherAux2.includes(myNum)) {
+              partner = other;
+              partnerIdx = j;
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    // 3. Fallback: Si sólo hay exactamente un pedido candidato con el targetCode opuesto, se asocian
+    if (!partner) {
+      const candidates = pedidos
+        .map((op, oIdx) => ({ op, oIdx }))
+        .filter(({ op, oIdx }) => oIdx !== i && op.classification && op.classification.code === targetCode);
+      if (candidates.length === 1) {
+        partner = candidates[0].op;
+        partnerIdx = candidates[0].oIdx;
+      }
+    }
+
+    if (partner && partnerIdx !== -1) {
+      p.classification.pairedOrder = {
+        index: partnerIdx,
+        idpedido: partner.idpedido,
+        referencia: partner.referencia,
+        remito: partner.remito,
+        operacion: partner.operacion,
+        status: partner.status,
+        statusLabel: partner.statusLabel,
+        code: partner.classification.code,
+        type: partner.classification.type,
+        badgeText: partner.classification.badgeText
+      };
+    }
+  }
+}
+
 function parseEntregarHtml(content) {
   const rowMatches = [...content.matchAll(/id_sc_field_idempresa_(\d+)/g)];
   if (!rowMatches.length) return [];
@@ -583,12 +720,17 @@ function parseEntregarHtml(content) {
       statusLabel = 'Pendiente de retiro';
     }
 
+    const refCode = getField('idreferencia') || '';
+    const aux1 = getField('varchar_aux1') || '';
+    const aux2 = getField('varchar_aux2') || '';
+    const classification = classifyEntregarRef(refCode, aux1, aux2);
+
     pedidos.push({
       idpedido: getField('idpedido'),
       empresa: getField('idempresa'),
       operacion: getField('idtipo_operacion'),
       operacionActual: getField('idtipo_operacion_actual'),
-      referencia: getField('idreferencia') || getField('varchar_aux2'),
+      referencia: refCode || aux2,
       remito: getField('nro_remito'),
       servicio: getField('idtipo_servicio'),
       destinatario: getField('nombre'),
@@ -603,9 +745,15 @@ function parseEntregarHtml(content) {
       bultos: getField('cantidad_bultos'),
       peso: getField('peso_total_kg'),
       producto: getField('descripcion'),
+      campoAuxiliar1: aux1,
+      campoAuxiliar2: aux2,
+      classification,
       events
     });
   }
+
+  // Vincular tramos de cambio (ZECH con ZRE7)
+  linkExchangePairs(pedidos);
 
   return pedidos;
 }
@@ -673,6 +821,9 @@ async function trackEntregar(rawOrder) {
           officialUrl: primaryOfficialUrl,
           statusCategory: primary.statusCategory,
           statusLabel: primary.statusLabel,
+          classification: primary.classification,
+          campoAuxiliar1: primary.campoAuxiliar1,
+          campoAuxiliar2: primary.campoAuxiliar2,
           summary: {
             guiaNumero: primary.remito || primary.idpedido,
             clienteCodigo: primary.destinatario || code,
@@ -713,6 +864,9 @@ async function trackEntregar(rawOrder) {
               bultos: p.bultos,
               peso: p.peso,
               producto: p.producto,
+              campoAuxiliar1: p.campoAuxiliar1,
+              campoAuxiliar2: p.campoAuxiliar2,
+              classification: p.classification,
               movements: p.events
             };
           })

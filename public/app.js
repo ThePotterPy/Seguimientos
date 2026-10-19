@@ -55,6 +55,17 @@ const subOrdersContainer = document.getElementById('subOrdersContainer');
 const subOrdersList = document.getElementById('subOrdersList');
 const subOrdersCount = document.getElementById('subOrdersCount');
 
+// Banner Operativo Entregar (BGH: ZECO, ZECH, ZRE7, ZRE2)
+const entregarOperationalBanner = document.getElementById('entregarOperationalBanner');
+const operationalIconBox = document.getElementById('operationalIconBox');
+const operationalTitle = document.getElementById('operationalTitle');
+const operationalCodeBadge = document.getElementById('operationalCodeBadge');
+const operationalAuxBadge = document.getElementById('operationalAuxBadge');
+const operationalDescription = document.getElementById('operationalDescription');
+const operationalLinkedAction = document.getElementById('operationalLinkedAction');
+const goToLinkedLegBtn = document.getElementById('goToLinkedLegBtn');
+const goToLinkedLegText = document.getElementById('goToLinkedLegText');
+
 const resultOrderTitle = document.getElementById('resultOrderTitle');
 const metaGuia = document.getElementById('metaGuia');
 const metaRemitente = document.getElementById('metaRemitente');
@@ -403,15 +414,25 @@ function renderResult(data) {
       const pill = document.createElement('button');
       pill.type = 'button';
       const isActive = sIdx === selectedIdx;
-      pill.className = `suborder-pill ${isActive ? 'active' : ''}`;
       
+      const cls = sub.classification || {};
+      const typeKey = cls.type || 'general';
+      const codeKey = (cls.code || 'otro').toLowerCase();
+      
+      pill.className = `suborder-pill type-${typeKey} ${isActive ? 'active' : ''}`;
+      
+      const badgeSnippet = cls.code ? `<span class="pill-badge pill-badge-${codeKey}">${escapeHtml(cls.code)}</span>` : '';
       const op = sub.operacion || 'Envío';
-      const idStr = sub.idpedido ? `#${sub.idpedido}` : '';
+      const remitoStr = sub.remito ? `${sub.remito}` : (sub.idpedido ? `#${sub.idpedido}` : '');
       const st = sub.status || 'En proceso';
 
       pill.innerHTML = `
         <span class="suborder-dot"></span>
-        <span>${escapeHtml(op)} ${escapeHtml(idStr)}: <strong>${escapeHtml(st)}</strong></span>
+        ${badgeSnippet}
+        <span class="suborder-text">
+          <span class="suborder-title">${escapeHtml(cls.label || op)}</span>
+          <span class="suborder-sub">${escapeHtml(remitoStr)} • <strong>${escapeHtml(st)}</strong></span>
+        </span>
       `;
 
       pill.addEventListener('click', () => {
@@ -480,6 +501,68 @@ function applySubOrderData(data, subOrder) {
     officialLinkBtn.href = `https://svr.entregar.net.ar/tracking_bgh/landingPage.php?numero_orden=${encodeURIComponent(activeRef)}&numero_hash=&boton=Consultar`;
   } else {
     officialLinkBtn.href = isSub ? (subOrder.officialUrl || data.officialUrl) : data.officialUrl;
+  }
+
+  // Banner Operativo Entregar (BGH: ZECO, ZECH, ZRE7, ZRE2)
+  const activeSub = isSub ? subOrder : data;
+  const cls = activeSub.classification || data.classification;
+
+  if (carrier === 'entregar' && cls && cls.code) {
+    entregarOperationalBanner.classList.remove('hidden');
+    entregarOperationalBanner.className = `px-5 py-3.5 border-b flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs transition-all banner-${cls.type || 'general'}`;
+
+    // Iconos temáticos según clasificación
+    let iconHtml = '<i class="fa-solid fa-box"></i>';
+    if (cls.type === 'original') {
+      iconHtml = '<i class="fa-solid fa-box-open"></i>';
+    } else if (cls.type === 'swap_dispatch') {
+      iconHtml = '<i class="fa-solid fa-truck-ramp-box"></i>';
+    } else if (cls.type === 'swap_pickup') {
+      iconHtml = '<i class="fa-solid fa-arrow-right-arrow-left"></i>';
+    } else if (cls.type === 'return_pickup') {
+      iconHtml = '<i class="fa-solid fa-arrow-rotate-left"></i>';
+    }
+    operationalIconBox.innerHTML = iconHtml;
+
+    operationalTitle.textContent = cls.label || 'Envío Entregar';
+    operationalCodeBadge.textContent = cls.code || 'BGH';
+
+    // Referencia de texto auxiliar
+    const aux2Text = activeSub.campoAuxiliar2 || data.campoAuxiliar2 || '';
+    if (aux2Text) {
+      operationalAuxBadge.textContent = aux2Text;
+      operationalAuxBadge.classList.remove('hidden');
+    } else {
+      operationalAuxBadge.classList.add('hidden');
+    }
+
+    operationalDescription.textContent = cls.description || '';
+
+    // Manejo de tramo vinculado de cambio (ZECH <-> ZRE7)
+    if (cls.pairedOrder && cls.pairedOrder.index !== undefined) {
+      const paired = cls.pairedOrder;
+      operationalLinkedAction.classList.remove('hidden');
+      const targetLabel = paired.type === 'swap_pickup' ? 'Retiro' : 'Despacho';
+      const targetIdentifier = paired.remito || paired.referencia || `#${paired.idpedido}`;
+      goToLinkedLegText.textContent = `Ver ${targetLabel} (${targetIdentifier})`;
+      
+      goToLinkedLegBtn.onclick = () => {
+        if (data.allOrders && data.allOrders[paired.index]) {
+          data.selectedSubOrderIndex = paired.index;
+          applySubOrderData(data, data.allOrders[paired.index]);
+          if (subOrdersList && subOrdersList.children[paired.index]) {
+            [...subOrdersList.children].forEach((c, idx) => {
+              c.classList.toggle('active', idx === paired.index);
+            });
+            subOrdersList.children[paired.index].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+          }
+        }
+      };
+    } else {
+      operationalLinkedAction.classList.add('hidden');
+    }
+  } else {
+    entregarOperationalBanner.classList.add('hidden');
   }
 
   const guia = isSub ? (subOrder.remito || subOrder.idpedido) : (data.guiaNumero || data.summary.guiaNumero || 'Sin asignar');
@@ -647,15 +730,28 @@ copyGuiaBtn.addEventListener('click', async () => {
 copySummaryBtn.addEventListener('click', async () => {
   if (!lastTrackedData) return;
   const d = lastTrackedData;
-  const carrierName = d.carrier === 'andreani' ? 'Correo Andreani' : (d.carrier === 'entregar' ? 'Entregar' : 'Urbano Express');
+  const carrierName = d.carrier === 'andreani' ? 'Correo Andreani' : (d.carrier === 'entregar' ? 'Entregar (BGH)' : 'Urbano Express');
   const currentLink = officialLinkBtn?.href || d.officialUrl;
   const currentRef = resultOrderTitle?.textContent.trim() || d.order;
   const currentGuia = metaGuia?.textContent.trim() || d.guiaNumero || 'N/A';
-  const currentRemitente = metaRemitente?.textContent.trim() || d.summary.remitente || 'N/A';
+  const currentRemitente = metaRemitente?.textContent.trim() || d.summary?.remitente || 'N/A';
   const currentStatus = statusLabelText?.textContent.trim() || d.statusLabel;
   const currentDate = statusDateBadge?.textContent.replace(/[()]/g, '').trim() || '';
 
-  const text = `Seguimiento ${carrierName}\nReferencia / Pedido: ${currentRef}\nGuía / Remito: ${currentGuia}\nRemitente: ${currentRemitente}\nEstado: ${currentStatus} ${currentDate ? `(${currentDate})` : ''}\nEnlace oficial: ${currentLink}`;
+  let extraLines = '';
+  if (d.carrier === 'entregar') {
+    const activeSub = (d.allOrders && d.selectedSubOrderIndex !== undefined) ? d.allOrders[d.selectedSubOrderIndex] : d;
+    const cls = activeSub.classification || d.classification;
+    if (cls && cls.label) {
+      extraLines += `Operación: ${cls.badgeText || cls.label}\n`;
+      if (cls.pairedOrder) {
+        const pairedLabel = cls.pairedOrder.type === 'swap_pickup' ? 'Retiro' : 'Despacho';
+        extraLines += `Vinculado a: ${pairedLabel} ${cls.pairedOrder.referencia} (Remito ${cls.pairedOrder.remito || 'S/N'})\n`;
+      }
+    }
+  }
+
+  const text = `Seguimiento ${carrierName}\nReferencia / Pedido: ${currentRef}\nGuía / Remito: ${currentGuia}\n${extraLines}Remitente: ${currentRemitente}\nEstado: ${currentStatus} ${currentDate ? `(${currentDate})` : ''}\nEnlace oficial: ${currentLink}`;
 
   await copyText(text, 'Ficha del envío copiada para enviar');
 });
