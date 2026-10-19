@@ -356,7 +356,7 @@ async function performTrack(order) {
   } catch (err) {
     let fallbackUrl = `https://apis.urbano.com.ar/cespecifica/?tracking=${currentShipper}${order}`;
     if (currentCarrier === 'andreani') fallbackUrl = `https://www.andreani.com/envio/${encodeURIComponent(order)}`;
-    if (currentCarrier === 'entregar') fallbackUrl = 'https://svr.entregar.net.ar/e_transport/grid_view_consulta_pedidos/';
+    if (currentCarrier === 'entregar') fallbackUrl = `https://svr.entregar.net.ar/tracking_bgh/landingPage.php?numero_orden=${encodeURIComponent(order)}&numero_hash=&boton=Consultar`;
     showError(`Error de conexión con el servidor: ${err.message}`, fallbackUrl);
   } finally {
     loadingBox.classList.add('hidden');
@@ -472,6 +472,15 @@ function applySubOrderData(data, subOrder) {
   // Metadatos clave
   const refCode = isSub ? (subOrder.referencia || data.order) : (data.referenciaEnvio || data.order);
   resultOrderTitle.textContent = refCode;
+
+  // Actualizar enlace oficial según transportista y sub-orden
+  const carrier = data.carrier || currentCarrier;
+  if (carrier === 'entregar') {
+    const activeRef = isSub ? (subOrder.referencia || refCode) : (data.referenciaEnvio || refCode);
+    officialLinkBtn.href = `https://svr.entregar.net.ar/tracking_bgh/landingPage.php?numero_orden=${encodeURIComponent(activeRef)}&numero_hash=&boton=Consultar`;
+  } else {
+    officialLinkBtn.href = isSub ? (subOrder.officialUrl || data.officialUrl) : data.officialUrl;
+  }
 
   const guia = isSub ? (subOrder.remito || subOrder.idpedido) : (data.guiaNumero || data.summary.guiaNumero || 'Sin asignar');
   metaGuia.textContent = guia;
@@ -639,7 +648,14 @@ copySummaryBtn.addEventListener('click', async () => {
   if (!lastTrackedData) return;
   const d = lastTrackedData;
   const carrierName = d.carrier === 'andreani' ? 'Correo Andreani' : (d.carrier === 'entregar' ? 'Entregar' : 'Urbano Express');
-  const text = `Seguimiento ${carrierName}\nReferencia / Pedido: ${d.order}\nGuía / Remito: ${d.guiaNumero || d.summary.guiaNumero || 'N/A'}\nRemitente: ${d.summary.remitente || 'N/A'}\nEstado: ${d.statusLabel} (${d.summary.fechaEstado || ''})\nEnlace oficial: ${d.officialUrl}`;
+  const currentLink = officialLinkBtn?.href || d.officialUrl;
+  const currentRef = resultOrderTitle?.textContent.trim() || d.order;
+  const currentGuia = metaGuia?.textContent.trim() || d.guiaNumero || 'N/A';
+  const currentRemitente = metaRemitente?.textContent.trim() || d.summary.remitente || 'N/A';
+  const currentStatus = statusLabelText?.textContent.trim() || d.statusLabel;
+  const currentDate = statusDateBadge?.textContent.replace(/[()]/g, '').trim() || '';
+
+  const text = `Seguimiento ${carrierName}\nReferencia / Pedido: ${currentRef}\nGuía / Remito: ${currentGuia}\nRemitente: ${currentRemitente}\nEstado: ${currentStatus} ${currentDate ? `(${currentDate})` : ''}\nEnlace oficial: ${currentLink}`;
 
   await copyText(text, 'Ficha del envío copiada para enviar');
 });

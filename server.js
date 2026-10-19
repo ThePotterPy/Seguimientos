@@ -613,7 +613,8 @@ function parseEntregarHtml(content) {
 async function trackEntregar(rawOrder) {
   const code = (rawOrder || '').trim();
   const cookie = getEntregarCookie();
-  const officialUrl = 'https://svr.entregar.net.ar/e_transport/grid_view_consulta_pedidos/';
+  const searchPostUrl = 'https://svr.entregar.net.ar/e_transport/grid_view_consulta_pedidos/';
+  const fallbackBghUrl = `https://svr.entregar.net.ar/tracking_bgh/landingPage.php?numero_orden=${encodeURIComponent(code)}&numero_hash=&boton=Consultar`;
 
   const postData = `nmgp_fast_search=SC_all_Cmp&nmgp_cond_fast_search=qp&nmgp_arg_fast_search=${encodeURIComponent(code)}&script_case_init=491&nmgp_opcao=fast_search`;
 
@@ -629,7 +630,7 @@ async function trackEntregar(rawOrder) {
         'Cookie': cookie,
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Origin': 'https://svr.entregar.net.ar',
-        'Referer': officialUrl,
+        'Referer': searchPostUrl,
         'X-Requested-With': 'XMLHttpRequest'
       },
       timeout: 10000
@@ -642,7 +643,7 @@ async function trackEntregar(rawOrder) {
             success: false,
             carrier: 'entregar',
             order: code,
-            officialUrl,
+            officialUrl: fallbackBghUrl,
             needSession: true,
             message: 'La sesión de Entregar ha expirado. Es necesario renovar la cookie de acceso.'
           });
@@ -654,12 +655,14 @@ async function trackEntregar(rawOrder) {
             success: false,
             carrier: 'entregar',
             order: code,
-            officialUrl,
+            officialUrl: fallbackBghUrl,
             message: 'No se encontró ningún envío asociado a este código en Entregar.'
           });
         }
 
         const primary = pedidos[0];
+        const primaryRef = primary.referencia || code;
+        const primaryOfficialUrl = `https://svr.entregar.net.ar/tracking_bgh/landingPage.php?numero_orden=${encodeURIComponent(primaryRef)}&numero_hash=&boton=Consultar`;
 
         resolve({
           success: true,
@@ -667,7 +670,7 @@ async function trackEntregar(rawOrder) {
           order: code,
           guiaNumero: primary.remito || primary.idpedido,
           referenciaEnvio: primary.referencia || code,
-          officialUrl,
+          officialUrl: primaryOfficialUrl,
           statusCategory: primary.statusCategory,
           statusLabel: primary.statusLabel,
           summary: {
@@ -690,25 +693,29 @@ async function trackEntregar(rawOrder) {
             zona: primary.zona
           },
           movements: primary.events,
-          allOrders: pedidos.map(p => ({
-            idpedido: p.idpedido,
-            empresa: p.empresa,
-            operacion: p.operacion,
-            referencia: p.referencia,
-            remito: p.remito,
-            destinatario: p.destinatario,
-            status: p.status,
-            statusCategory: p.statusCategory,
-            statusLabel: p.statusLabel,
-            fechaStatus: p.fechaStatus,
-            direccion: p.direccion,
-            expreso: p.expreso,
-            servicio: p.servicio,
-            bultos: p.bultos,
-            peso: p.peso,
-            producto: p.producto,
-            movements: p.events
-          }))
+          allOrders: pedidos.map(p => {
+            const pRef = p.referencia || code;
+            return {
+              idpedido: p.idpedido,
+              empresa: p.empresa,
+              operacion: p.operacion,
+              referencia: p.referencia,
+              remito: p.remito,
+              destinatario: p.destinatario,
+              officialUrl: `https://svr.entregar.net.ar/tracking_bgh/landingPage.php?numero_orden=${encodeURIComponent(pRef)}&numero_hash=&boton=Consultar`,
+              status: p.status,
+              statusCategory: p.statusCategory,
+              statusLabel: p.statusLabel,
+              fechaStatus: p.fechaStatus,
+              direccion: p.direccion,
+              expreso: p.expreso,
+              servicio: p.servicio,
+              bultos: p.bultos,
+              peso: p.peso,
+              producto: p.producto,
+              movements: p.events
+            };
+          })
         });
       });
     });
@@ -719,7 +726,7 @@ async function trackEntregar(rawOrder) {
         success: false,
         carrier: 'entregar',
         order: code,
-        officialUrl,
+        officialUrl: fallbackBghUrl,
         message: 'Tiempo de espera agotado al consultar los servidores de Entregar.'
       });
     });
@@ -729,7 +736,7 @@ async function trackEntregar(rawOrder) {
         success: false,
         carrier: 'entregar',
         order: code,
-        officialUrl,
+        officialUrl: fallbackBghUrl,
         message: `Error de red al conectar con Entregar: ${err.message}`
       });
     });
