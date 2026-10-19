@@ -729,13 +729,30 @@ function applySubOrderData(data, subOrder) {
   const serv = isSub ? [subOrder.servicio, subOrder.operacion].filter(Boolean).join(' • ') : (data.summary.servicio || 'Distribución Estándar');
   metaServicio.textContent = serv;
   
-  const destInfo = isSub 
-    ? (subOrder.destinatario ? `${subOrder.destinatario} - ${subOrder.direccion || ''}` : subOrder.direccion || 'Nacional')
-    : (data.detail.destinatario ? `${data.detail.destinatario} - ${data.detail.direccion || ''}` : data.detail.observaciones || data.detail.direccion || 'Nacional');
-  metaDestino.textContent = destInfo;
+  const destName = isSub 
+    ? (subOrder.destinatario || '')
+    : (data.detail?.destinatario || data.summary?.clienteCodigo || '');
+  const destAddr = isSub
+    ? (subOrder.direccion || '')
+    : (data.detail?.direccion || data.detail?.observaciones || '');
+
+  if (destName && destAddr && destName.trim() !== destAddr.trim()) {
+    metaDestino.innerHTML = `
+      <span class="block font-bold text-slate-900 leading-snug">${escapeHtml(destName)}</span>
+      <span class="block text-[11px] text-slate-600 font-normal leading-relaxed mt-0.5 break-words">${escapeHtml(destAddr)}</span>
+    `;
+  } else {
+    metaDestino.textContent = destName || destAddr || 'Nacional';
+  }
 
   const prodInfo = isSub ? subOrder.producto : (data.summary.producto || data.detail.producto);
-  metaCiclo.textContent = prodInfo ? `Producto: ${prodInfo}` : (data.summary.ciclo ? `Ciclo: ${data.summary.ciclo}` : '');
+  if (prodInfo) {
+    metaCiclo.innerHTML = `<span class="text-slate-400 font-medium">Contenido general:</span> <span>${escapeHtml(prodInfo)}</span>`;
+  } else if (data.summary?.ciclo) {
+    metaCiclo.innerHTML = `<span class="text-slate-400 font-medium">Ciclo:</span> <span>${escapeHtml(data.summary.ciclo)}</span>`;
+  } else {
+    metaCiclo.textContent = '';
+  }
 
   // ========================================================================
   // Renderizar Sección de Productos y Bultos

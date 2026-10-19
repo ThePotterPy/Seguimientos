@@ -343,51 +343,53 @@
           </div>
 
           <!-- Bento Grid de Metadatos Clave -->
-          <div class="p-5 sm:p-6 grid grid-cols-2 md:grid-cols-4 gap-4 text-xs border-b border-slate-100">
+          <div class="p-5 sm:p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 text-xs border-b border-slate-100">
             
             <!-- Referencia de Envío -->
-            <div class="bg-slate-50/80 p-3 rounded-xl border border-slate-100 flex flex-col justify-between">
-              <div class="flex items-center justify-between text-slate-400 font-medium mb-1">
+            <div class="bg-slate-50/80 p-3.5 rounded-xl border border-slate-100 flex flex-col justify-start gap-1.5 min-w-0">
+              <div class="flex items-center justify-between text-slate-400 font-medium">
                 <span>Referencia / Pedido</span>
                 <button type="button" id="copyOrderBtn" class="copy-hover-btn text-slate-400 hover:text-slate-700" title="Copiar referencia">
                   <i class="fa-regular fa-copy text-xs"></i>
                 </button>
               </div>
-              <span id="resultOrderTitle" class="text-sm sm:text-base font-bold text-slate-900 font-mono-code truncate select-all">--</span>
+              <span id="resultOrderTitle" class="text-sm sm:text-base font-bold text-slate-900 font-mono-code break-all whitespace-normal select-all leading-snug">--</span>
             </div>
 
             <!-- Guía Oficial -->
-            <div class="bg-slate-50/80 p-3 rounded-xl border border-slate-100 flex flex-col justify-between">
-              <div class="flex items-center justify-between text-slate-400 font-medium mb-1">
+            <div class="bg-slate-50/80 p-3.5 rounded-xl border border-slate-100 flex flex-col justify-start gap-1.5 min-w-0">
+              <div class="flex items-center justify-between text-slate-400 font-medium">
                 <span>N° Guía Oficial</span>
                 <button type="button" id="copyGuiaBtn" class="copy-hover-btn text-slate-400 hover:text-slate-700" title="Copiar guía oficial">
                   <i class="fa-regular fa-copy text-xs"></i>
                 </button>
               </div>
-              <span id="metaGuia" class="text-sm sm:text-base font-bold text-slate-900 font-mono-code truncate select-all">--</span>
+              <span id="metaGuia" class="text-sm sm:text-base font-bold text-slate-900 font-mono-code break-all whitespace-normal select-all leading-snug">--</span>
             </div>
 
             <!-- Remitente / Tienda -->
-            <div class="bg-slate-50/80 p-3 rounded-xl border border-slate-100 flex flex-col justify-between">
-              <span class="text-slate-400 font-medium mb-1">Remitente</span>
-              <span id="metaRemitente" class="text-xs sm:text-sm font-semibold text-slate-800 truncate">--</span>
+            <div class="bg-slate-50/80 p-3.5 rounded-xl border border-slate-100 flex flex-col justify-start gap-1.5 min-w-0">
+              <span class="text-slate-400 font-medium">Remitente</span>
+              <span id="metaRemitente" class="text-xs sm:text-sm font-semibold text-slate-800 break-words whitespace-normal leading-snug">--</span>
             </div>
 
             <!-- Destino / Servicio -->
-            <div class="bg-slate-50/80 p-3 rounded-xl border border-slate-100 flex flex-col justify-between">
-              <span class="text-slate-400 font-medium mb-1">Destino / Servicio</span>
-              <div class="flex flex-col">
-                <span id="metaDestino" class="text-xs sm:text-sm font-semibold text-slate-800 truncate">--</span>
-                <span id="metaServicio" class="text-[11px] text-slate-400 truncate">--</span>
+            <div class="bg-slate-50/80 p-3.5 rounded-xl border border-slate-100 flex flex-col justify-start gap-1.5 min-w-0">
+              <span class="text-slate-400 font-medium">Destino / Servicio</span>
+              <div class="flex flex-col gap-0.5">
+                <div id="metaDestino" class="text-xs sm:text-sm font-semibold text-slate-800 break-words whitespace-normal leading-snug">--</div>
+                <div id="metaServicio" class="text-[11px] text-slate-500 break-words whitespace-normal leading-normal mt-0.5">--</div>
               </div>
             </div>
 
           </div>
 
           <!-- Pie informativo de la ficha -->
-          <div class="px-5 py-3 bg-slate-50/50 flex items-center justify-between text-xs text-slate-500">
-            <span class="font-mono-code truncate" id="metaCiclo"></span>
-            <span class="text-[11px] text-slate-400 font-medium">Información sincronizada en tiempo real</span>
+          <div class="px-5 py-3.5 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-slate-500 border-t border-slate-100">
+            <div class="flex items-start gap-1.5 text-slate-600 font-mono-code break-words whitespace-normal leading-relaxed flex-1 min-w-0">
+              <span id="metaCiclo" class="break-words whitespace-normal"></span>
+            </div>
+            <span class="text-[11px] text-slate-400 font-medium shrink-0 self-start sm:self-center">Información sincronizada en tiempo real</span>
           </div>
 
         </div>
