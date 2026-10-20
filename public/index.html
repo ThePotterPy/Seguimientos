@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Página sin nombre | Seguimiento Urbano, Andreani y Entregar</title>
+  <title>SEGUIMIENTO BGH | Rastreo Unificado Urbano, Andreani y Entregar</title>
   <link rel="icon" type="image/svg+xml" href="logo.svg">
   
   <!-- Font Awesome Icons & Tailwind CDN -->
@@ -24,21 +24,21 @@
           <div class="flex flex-col">
             <div class="flex items-center gap-2">
               <span class="text-sm sm:text-base font-extrabold text-slate-900 tracking-tight leading-tight">
-                Página sin nombre
+                SEGUIMIENTO BGH
               </span>
               <span class="hidden md:inline-flex text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
                 Tracking Hub
               </span>
             </div>
             <span class="text-[11px] text-slate-400 font-medium leading-none">
-              porque a Jorge no se le ocurre nada
+              Portal Unificado de Envíos y Cambios BGH
             </span>
           </div>
         </a>
       </div>
 
       <!-- Controles de Encabezado: Selector de Empresa y Cuenta -->
-      <div class="flex items-center gap-2.5">
+      <div class="flex items-center gap-2 sm:gap-2.5">
         
         <!-- Segmented Carrier Control -->
         <div class="carrier-segmented-switch" role="tablist" aria-label="Selección de empresa de correo">
@@ -76,8 +76,8 @@
         <!-- Cuenta Despacho Fija (Urbano) -->
         <div 
           id="shipperBadgeContainer" 
-          class="hidden sm:inline-flex items-center gap-1.5 text-xs text-slate-600 bg-slate-50 border border-slate-200 px-2.5 py-1.5 rounded-lg select-none" 
-          title="Cuenta consolidada de despacho (fija y no modificable)"
+          class="hidden md:inline-flex items-center gap-1.5 text-xs text-slate-600 bg-slate-50 border border-slate-200 px-2.5 py-1.5 rounded-lg select-none" 
+          title="Cuenta consolidada de despacho BGH (fija y no modificable)"
         >
           <i class="fa-solid fa-lock text-[10px] text-slate-400"></i>
           <span class="text-slate-500 font-medium">Cuenta:</span>
@@ -93,6 +93,17 @@
         >
           <i class="fa-solid fa-key text-[10px] text-emerald-600"></i>
           <span class="hidden sm:inline">Sesión</span>
+        </button>
+
+        <!-- Botón Presentación / Arquitectura Técnica -->
+        <button 
+          id="architectureBtn" 
+          type="button" 
+          class="text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 px-2.5 py-1.5 rounded-lg transition inline-flex items-center gap-1.5 cursor-pointer shadow-sm"
+          title="Ver cómo funciona el rastreo y la arquitectura técnica del sistema para presentación"
+        >
+          <i class="fa-solid fa-circle-question text-blue-600 text-xs"></i>
+          <span class="hidden sm:inline font-semibold">¿Cómo funciona?</span>
         </button>
 
       </div>
@@ -614,10 +625,248 @@
     </div>
   </div>
 
+  <!-- ======================================================================
+       MODAL DE PRESENTACIÓN / ARQUITECTURA TÉCNICA DEL SISTEMA
+       ====================================================================== -->
+  <div id="architectureModal" class="modal-overlay">
+    <div class="modal-card modal-card-lg p-5 sm:p-7">
+      
+      <!-- Cabecera del Modal -->
+      <div class="flex items-center justify-between pb-4 border-b border-slate-100 shrink-0">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-base shadow-sm">
+            <i class="fa-solid fa-layer-group"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
+                SEGUIMIENTO BGH
+              </h3>
+              <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                Arquitectura del Sistema
+              </span>
+            </div>
+            <p class="text-xs text-slate-500">Documentación técnica, métodos de extracción por courier y tecnología empleada</p>
+          </div>
+        </div>
+        <button id="closeArchitectureModalBtn" type="button" class="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-100 transition cursor-pointer">
+          <i class="fa-solid fa-xmark text-base"></i>
+        </button>
+      </div>
+
+      <!-- Contenido Scrollable con Información Completa -->
+      <div class="modal-body-scroll mt-4 space-y-6 pr-1 text-slate-700 text-xs sm:text-sm">
+        
+        <!-- Bloque 1: Resumen Operativo BGH -->
+        <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 sm:p-5">
+          <div class="flex items-center gap-2 mb-2 font-bold text-slate-900 text-sm">
+            <i class="fa-solid fa-building text-slate-700"></i>
+            <span>Centralización y Logística Unificada BGH</span>
+          </div>
+          <p class="text-slate-600 leading-relaxed text-xs">
+            BGH comercializa productos a través de múltiples canales (Mercado Libre, Tienda Oficial BGH, ICBC Mall, bancos y retail). 
+            Los envíos directos se distribuyen principalmente a través de <strong>Urbano Express</strong> y <strong>Correo Andreani</strong>. 
+            Sin embargo, <strong>todos los cambios y reclamos por productos dañados, incorrectos o con fallas técnicas se canalizan exclusivamente mediante Entregar</strong>. 
+            Esta plataforma unifica ambas operaciones en una interfaz de alta velocidad.
+          </p>
+        </div>
+
+        <!-- Bloque 2: ¿Cómo rastreamos en cada Courier? -->
+        <div class="space-y-3">
+          <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+            <i class="fa-solid fa-truck-fast text-slate-500"></i>
+            <span>Métodos de Rastreo por Empresa de Correo</span>
+          </h4>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+            
+            <!-- Card Courier: Urbano -->
+            <div class="p-4 rounded-xl border border-red-200 bg-red-50/20 flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <span class="font-bold text-slate-900 text-sm flex items-center gap-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full bg-red-600 inline-block"></span>
+                    Urbano Express
+                  </span>
+                  <span class="text-[10px] font-semibold text-red-700 bg-red-100/60 px-1.5 py-0.5 rounded border border-red-200">Portal BGH</span>
+                </div>
+                <div class="space-y-2 text-[11px] text-slate-600 leading-relaxed">
+                  <p>
+                    <strong>Cuenta Fija:</strong> Opera con la cuenta consolidada BGH <code class="font-mono bg-white px-1 py-0.5 rounded border border-slate-200 font-bold text-slate-800">004185</code>.
+                  </p>
+                  <p>
+                    <strong>Doble Consulta HTTP:</strong> Primero resuelve el estado general del remito en <code class="text-[10px] bg-white px-1 rounded border border-slate-200">cespecifica</code> y luego ejecuta un POST asíncrono a <code class="text-[10px] bg-white px-1 rounded border border-slate-200">especifica_controller.php</code>.
+                  </p>
+                  <p>
+                    <strong>Datos Extraídos:</strong> Trazabilidad completa paso a paso, planta de origen, móviles de reparto y confirmación de entrega con fecha y hora exacta.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card Courier: Andreani -->
+            <div class="p-4 rounded-xl border border-blue-200 bg-blue-50/20 flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <span class="font-bold text-slate-900 text-sm flex items-center gap-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full bg-blue-600 inline-block"></span>
+                    Correo Andreani
+                  </span>
+                  <span class="text-[10px] font-semibold text-blue-700 bg-blue-100/60 px-1.5 py-0.5 rounded border border-blue-200">API AES-256</span>
+                </div>
+                <div class="space-y-2 text-[11px] text-slate-600 leading-relaxed">
+                  <p>
+                    <strong>API Oficial Cifrada:</strong> Conexión directa contra los endpoints de <code class="text-[10px] bg-white px-1 rounded border border-slate-200">tracking-api.andreani.com</code> sobre la red de Cloudflare.
+                  </p>
+                  <p>
+                    <strong>Criptografía en Tránsito:</strong> Payload protegido con cifrado simétrico <strong>AES-256-CBC</strong> con tokens oficiales (<code class="text-[10px]">idReceptor: 1</code>).
+                  </p>
+                  <p>
+                    <strong>Resolución Inteligente:</strong> Mapea automáticamente órdenes de compra de Mercado Libre (ej: <code class="font-mono text-[10px]">2000018875238250</code>) a la guía interna de 15 dígitos de Andreani y audita el historial real sin falsos positivos de entrega.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card Courier: Entregar -->
+            <div class="p-4 rounded-xl border border-emerald-200 bg-emerald-50/20 flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <span class="font-bold text-slate-900 text-sm flex items-center gap-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block"></span>
+                    Entregar (BGH)
+                  </span>
+                  <span class="text-[10px] font-semibold text-emerald-700 bg-emerald-100/60 px-1.5 py-0.5 rounded border border-emerald-200">Sesión Emulada</span>
+                </div>
+                <div class="space-y-2 text-[11px] text-slate-600 leading-relaxed">
+                  <p>
+                    <strong>Simulación de Operador:</strong> Emula a un usuario humano logueado en la plataforma Scriptcase (<code class="text-[10px] bg-white px-1 rounded border border-slate-200">svr.entregar.net.ar</code>) utilizando cookies de sesión <code class="font-mono text-[10px]">PHPSESSID</code>.
+                  </p>
+                  <p>
+                    <strong>Keep-Alive Automático:</strong> El backend ejecuta un ping silencioso cada 10 minutos para evitar que la sesión caduque por inactividad.
+                  </p>
+                  <p>
+                    <strong>Desglose de Bultos:</strong> Consulta la grilla <code class="text-[10px] bg-white px-1 rounded border border-slate-200">apl_grid_detalle_pedido</code> y extrae el listado completo de productos, unidades y conteo total de bultos físicos.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Bloque 3: Lógica Operativa de Cambios y Referencias en Entregar -->
+        <div class="card-clean p-4 sm:p-5 border-emerald-200 bg-emerald-50/15 space-y-3">
+          <div class="flex items-center gap-2 font-bold text-slate-900 text-sm">
+            <i class="fa-solid fa-arrows-spin text-emerald-600"></i>
+            <span>Logística Inversa: Referencias y Vinculación ZECH / ZRE7</span>
+          </div>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            En el sistema de Entregar, cada movimiento logístico se categoriza mediante prefijos de referencia específicos:
+          </p>
+          
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+            <div class="p-2.5 bg-white rounded-lg border border-slate-200">
+              <span class="font-mono font-bold text-slate-900 text-xs px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 mr-1.5">ZECO</span>
+              <strong>Entrega Original:</strong> Envío de la compra realizada por primera vez hacia el domicilio del cliente.
+            </div>
+
+            <div class="p-2.5 bg-white rounded-lg border border-slate-200">
+              <span class="font-mono font-bold text-amber-700 text-xs px-1.5 py-0.5 rounded bg-amber-50 border border-amber-200 mr-1.5">ZRE2</span>
+              <strong>Retiro Simple:</strong> Recolección del producto por devolución o desistimiento de compra (sin reemplazo).
+            </div>
+
+            <div class="p-2.5 bg-white rounded-lg border border-emerald-300 sm:col-span-2 bg-emerald-50/40">
+              <div class="flex items-center gap-2 mb-1">
+                <span class="font-mono font-bold text-blue-700 text-xs px-1.5 py-0.5 rounded bg-blue-50 border border-blue-200">ZECH</span>
+                <i class="fa-solid fa-arrow-right-arrow-left text-[10px] text-slate-400"></i>
+                <span class="font-mono font-bold text-emerald-700 text-xs px-1.5 py-0.5 rounded bg-emerald-50 border border-emerald-200">ZRE7</span>
+                <span class="font-bold text-slate-900 text-xs">Cambio contra entrega (Van siempre juntos):</span>
+              </div>
+              <p class="text-[11px] text-slate-600 leading-relaxed">
+                El transportista entrega un producto nuevo en sustitución (<strong class="text-blue-800">ZECH</strong>) y retira en el mismo acto el producto recibido con fallas o defectos (<strong class="text-emerald-800">ZRE7</strong>). 
+                Ambos trámites se vinculan en el <em>Campo Auxiliar de Texto 2</em>. Nuestro algoritmo detecta esta vinculación cruzada automáticamente y permite alternar entre el despacho y el retiro con un solo clic.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bloque 4: Stack Tecnológico y Arquitectura de Software -->
+        <div class="space-y-3">
+          <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+            <i class="fa-solid fa-microchip text-slate-500"></i>
+            <span>Stack Tecnológico & Rendimiento del Sistema</span>
+          </h4>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            
+            <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
+              <div class="font-bold text-slate-900 flex items-center gap-2">
+                <i class="fa-brands fa-node-js text-emerald-600 text-base"></i>
+                <span>Node.js Nativo (Zero External Dependencies)</span>
+              </div>
+              <p class="text-slate-600 text-[11px] leading-relaxed">
+                El backend fue desarrollado 100% con módulos estándar de Node.js (<code class="text-[10px]">http</code>, <code class="text-[10px]">https</code>, <code class="text-[10px]">crypto</code>, <code class="text-[10px]">fs</code>), <strong>sin ninguna dependencia de npm</strong> (sin Express, Axios ni Cheerio). Esto garantiza arranque en <strong class="text-slate-800">&lt;100 ms</strong>, consumo menor a <strong class="text-slate-800">30 MB de RAM</strong> y máxima estabilidad de despliegue en Railway.
+              </p>
+            </div>
+
+            <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
+              <div class="font-bold text-slate-900 flex items-center gap-2">
+                <i class="fa-solid fa-shield-halved text-blue-600 text-base"></i>
+                <span>Criptografía & Cloudflare Direct Gateway</span>
+              </div>
+              <p class="text-slate-600 text-[11px] leading-relaxed">
+                Implementación de algoritmos <strong>AES-256-CBC</strong> para cifrado y descifrado de peticiones con Andreani. Soporta enrutamiento directo por sockets HTTPS hacia bloques IP de Cloudflare con SNI dinámico para evitar bloqueos por DNS, firewall o protecciones de red.
+              </p>
+            </div>
+
+            <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
+              <div class="font-bold text-slate-900 flex items-center gap-2">
+                <i class="fa-solid fa-code text-indigo-600 text-base"></i>
+                <span>Frontend Ultraliviano y Reactivo</span>
+              </div>
+              <p class="text-slate-600 text-[11px] leading-relaxed">
+                Single Page Application (SPA) en Vanilla JavaScript nativo con Tailwind CSS y Font Awesome 6.5. Carga instantánea, animaciones sutiles, Bento Grid modular, soporte para búsquedas masivas y guardado local seguro en <code class="text-[10px]">localStorage</code>.
+              </p>
+            </div>
+
+            <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
+              <div class="font-bold text-slate-900 flex items-center gap-2">
+                <i class="fa-solid fa-shuffle text-purple-600 text-base"></i>
+                <span>Búsqueda Cruzada Inteligente (Cross-Carrier)</span>
+              </div>
+              <p class="text-slate-600 text-[11px] leading-relaxed">
+                Permite buscar el mismo número de pedido entre distintas paqueterías (ej. ingresar un pedido de Mercado Libre en Entregar para verificar si tiene un cambio asociado) sin que el sistema fuerce redirecciones no deseadas gracias al bloqueo de courier explícito.
+              </p>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Pie del Modal -->
+      <div class="mt-5 pt-3.5 border-t border-slate-100 flex items-center justify-between shrink-0">
+        <span class="text-[11px] text-slate-400">
+          SEGUIMIENTO BGH • Sistema de Rastreo Logístico y Cambios
+        </span>
+        <button id="okArchitectureModalBtn" type="button" class="btn-primary-urbano px-4 py-2 text-xs font-semibold cursor-pointer">
+          <span>Entendido / Cerrar</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
   <!-- Pie de Página -->
   <footer class="mt-auto py-6 text-center text-xs text-slate-400 border-t border-slate-200 bg-white">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-2">
-      <p><strong>Página sin nombre</strong> • porque a Jorge no se le ocurre nada</p>
+      <div class="flex items-center gap-2">
+        <p><strong>SEGUIMIENTO BGH</strong> • Portal de Envíos y Logística Inversa</p>
+        <button id="footerArchitectureBtn" type="button" class="text-blue-600 hover:text-blue-800 underline font-semibold text-[11px] cursor-pointer">
+          (Ver Arquitectura Técnica)
+        </button>
+      </div>
       <p class="text-[11px] text-slate-400">Rastreador unificado en tiempo real para Urbano Express, Correo Andreani y Entregar</p>
     </div>
   </footer>

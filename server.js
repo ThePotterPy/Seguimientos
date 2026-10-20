@@ -47,9 +47,15 @@ function decodeHtmlEntities(str) {
     .replace(/\\u([0-9a-fA-F]{4})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
 }
 
-// -------------------------------------------------------------
-// TRACKING URBANO EXPRESS
-// -------------------------------------------------------------
+// ============================================================================
+// SECCIÓN 1: URBANO EXPRESS (Portal Corporativo BGH - Cuenta 004185)
+// ============================================================================
+// Arquitectura de extracción:
+// 1. Consulta automatizada contra el portal empresarial https://apis.urbano.com.ar/cespecifica/
+// 2. Extrae metadatos primarios (guía, remito, estado macro, destinatario).
+// 3. Petición POST secundaria a cespecifica/class/especifica_controller.php para
+//    obtener el historial cronológico completo de plantas logísticas y móviles.
+// ============================================================================
 async function trackUrbano(rawOrder, rawShipper = '004185') {
   let shipper = (rawShipper || '004185').trim();
   let order = (rawOrder || '').trim();
@@ -264,9 +270,17 @@ async function trackUrbano(rawOrder, rawShipper = '004185') {
   }
 }
 
-// -------------------------------------------------------------
-// TRACKING ANDREANI (Conexión directa a API oficial vía Cloudflare)
-// -------------------------------------------------------------
+// ============================================================================
+// SECCIÓN 2: CORREO ANDREANI (API Oficial Cifrada AES-256-CBC)
+// ============================================================================
+// Arquitectura de extracción:
+// 1. Conexión directa a la API de Andreani (tracking-api.andreani.com) enrutada
+//    por sockets HTTPS directos a IPs de Cloudflare Gateway (alta disponibilidad).
+// 2. Cifrado simétrico AES-256-CBC con claves y vector de inicialización fijos.
+// 3. Permite consultar por número de orden de Mercado Libre (ej: 2000018875238250)
+//    o número de guía Andreani de 15 dígitos.
+// 4. Mapeo riguroso de eventos para evitar falsos positivos de entrega.
+// ============================================================================
 function encryptAES(text, keyStr, ivStr) {
   const cipher = crypto.createCipheriv('aes-256-cbc', Buffer.from(keyStr, 'utf8'), Buffer.from(ivStr, 'utf8'));
   let encrypted = cipher.update(text, 'utf8', 'base64');
@@ -497,9 +511,21 @@ async function trackAndreani(rawOrder) {
   }
 }
 
-// -------------------------------------------------------------
-// TRACKING ENTREGAR (Scriptcase e_transport)
-// -------------------------------------------------------------
+// ============================================================================
+// SECCIÓN 3: ENTREGAR - BGH (Emulación de Sesión Humana & Logística Inversa)
+// ============================================================================
+// Arquitectura de extracción y reglas operativas BGH:
+// 1. Simulación de usuario logueado en Scriptcase (svr.entregar.net.ar).
+// 2. Mantenimiento activo de cookies de sesión PHPSESSID con keepalive cada 10 min.
+// 3. Centralización de Logística Inversa BGH:
+//    - Todos los cambios por reclamos/daños van exclusivamente por Entregar.
+//    - ZECO: Venta y entrega directa original al cliente.
+//    - ZECH (despacho nuevo) y ZRE7 (retiro dañado): Cambio contra entrega.
+//      Se vinculan automáticamente mediante el campo auxiliar de texto 2.
+//    - ZRE2: Retiro de devolución directa sin reposición de producto.
+// 4. Extracción recursiva de detalle de productos y conteo de bultos físicos
+//    a través de la grilla secundaria 'apl_grid_detalle_pedido'.
+// ============================================================================
 const SESSION_FILE = path.join(__dirname, 'entregar_session.json');
 let cachedEntregarCookie = null;
 let lastEntregarPing = null;
@@ -1023,9 +1049,18 @@ async function trackEntregar(rawOrder) {
   });
 }
 
-// -------------------------------------------------------------
-// SERVIDOR HTTP
-// -------------------------------------------------------------
+// ============================================================================
+// SECCIÓN 4: SERVIDOR HTTP REST & ENRUTADOR (API Gateway)
+// ============================================================================
+// Arquitectura:
+// - Cero dependencias externas (100% Node.js nativo puro: http, https, crypto, fs).
+// - Enrutamiento de endpoints REST:
+//     GET  /api/track?order=...&carrier=...&shipper=...
+//     POST /api/batch
+//     GET  /api/entregar/session
+//     POST /api/entregar/session
+// - Servidor de estáticos de alta velocidad para public/.
+// ============================================================================
 const server = http.createServer(async (req, res) => {
   const parsedUrl = url.parse(req.url, true);
   const pathname = parsedUrl.pathname;
@@ -1192,7 +1227,8 @@ const HOST = '0.0.0.0';
 function startServer(port) {
   const s = server.listen(port, HOST, () => {
     console.log(`====================================================`);
-    console.log(`  Página sin nombre - Seguimiento Urbano, Andreani & Entregar`);
+    console.log(`  SEGUIMIENTO BGH - Sistema Unificado de Rastreo`);
+    console.log(`  Urbano Express | Correo Andreani | Entregar (BGH)`);
     console.log(`  👉 Servidor listo en: http://localhost:${port}`);
     console.log(`====================================================`);
 

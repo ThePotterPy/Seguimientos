@@ -1,11 +1,15 @@
 // ==========================================================================
-// Página sin nombre — Lógica Frontend
-// Rastreador unificado Urbano Express, Correo Andreani y Entregar
+// SEGUIMIENTO BGH — Lógica Frontend (Single Page Application)
+// Rastreo Unificado en Tiempo Real: Urbano Express, Correo Andreani y Entregar
+// ==========================================================================
+
+// ==========================================================================
+// SECCIÓN 1: ESTADO GLOBAL Y SELECTORES DEL DOM
 // ==========================================================================
 
 // Estado de la aplicación
 let currentCarrier = localStorage.getItem('selected_carrier') || 'urbano';
-const currentShipper = '004185'; // Cuenta consolidada fija (Urbano)
+const currentShipper = '004185'; // Cuenta consolidada fija BGH (Urbano)
 let recentSearches = JSON.parse(localStorage.getItem('urbano_recent_searches') || '[]');
 let lastTrackedData = null;
 let currentViewMode = 'timeline'; // 'timeline' o 'table'
@@ -24,6 +28,13 @@ const cancelSessionModalBtn = document.getElementById('cancelSessionModalBtn');
 const saveSessionCookieBtn = document.getElementById('saveSessionCookieBtn');
 const sessionCookieInput = document.getElementById('sessionCookieInput');
 const sessionStatusMsg = document.getElementById('sessionStatusMsg');
+
+// Modal de Presentación / Arquitectura Técnica del Sistema
+const architectureBtn = document.getElementById('architectureBtn');
+const footerArchitectureBtn = document.getElementById('footerArchitectureBtn');
+const architectureModal = document.getElementById('architectureModal');
+const closeArchitectureModalBtn = document.getElementById('closeArchitectureModalBtn');
+const okArchitectureModalBtn = document.getElementById('okArchitectureModalBtn');
 
 // Elementos del DOM - Formulario de Búsqueda
 const trackForm = document.getElementById('trackForm');
@@ -212,7 +223,10 @@ function init() {
 }
 
 // ==========================================================================
-// Cambio de Courier (Urbano vs Andreani vs Entregar)
+// SECCIÓN 2: CONTROLADOR DE PAQUETERÍAS (URBANO, ANDREANI, ENTREGAR)
+// - Conmutación visual de paletas y etiquetas por courier
+// - Bloqueo de transportista explícito por el operador (userExplicitCarrier)
+// - Detección inteligente por formato (Mercado Libre, referencias BGH, etc.)
 // ==========================================================================
 function setCarrier(carrier, clearViews = true) {
   currentCarrier = carrier;
@@ -453,8 +467,12 @@ async function performTrack(order) {
 }
 
 // ==========================================================================
-// Renderizado del Resultado
+// SECCIÓN 4: PARSEO Y RENDERIZADO VISUAL UNIFICADO
 // ==========================================================================
+
+// --------------------------------------------------------------------------
+// 4.1 Configuración de Couriers y Botones de Acceso Oficial
+// --------------------------------------------------------------------------
 function renderResult(data) {
   const carrier = data.carrier || currentCarrier;
 
@@ -506,7 +524,10 @@ function renderResult(data) {
     }
   }
 
-  // Manejo de múltiples tramos / sub-órdenes (Despacho / Retiro)
+  // --------------------------------------------------------------------------
+  // 4.2 LÓGICA ENTREGAR: Sub-órdenes, Tramos Múltiples y Banners Operativos
+  //     (ZECO: Entrega original | ZECH: Despacho cambio | ZRE7: Retiro cambio | ZRE2: Devolución)
+  // --------------------------------------------------------------------------
   if (data.allOrders && data.allOrders.length > 1) {
     subOrdersContainer.classList.remove('hidden');
     subOrdersCount.textContent = data.allOrders.length;
@@ -753,9 +774,10 @@ function applySubOrderData(data, subOrder) {
     metaCiclo.textContent = '';
   }
 
-  // ========================================================================
-  // Renderizar Sección de Productos y Bultos (Filas hacia abajo con cantidad)
-  // ========================================================================
+  // --------------------------------------------------------------------------
+  // 4.3 LÓGICA ENTREGAR: Desglose de Productos y Conteo de Bultos Físicos
+  //     (Extracción recursiva de la grilla secundaria 'apl_grid_detalle_pedido')
+  // --------------------------------------------------------------------------
   const products = (isSub ? subOrder.products : data.products) || (data.detail && data.detail.products) || [];
   let bultosCount = (isSub ? subOrder.bultos : (data.bultos || (data.detail && data.detail.bultos))) || '';
   
@@ -840,7 +862,9 @@ function applySubOrderData(data, subOrder) {
   renderTable(movements);
 }
 
-// Renderizado del Feed Timeline Vertical
+// --------------------------------------------------------------------------
+// 4.4 Cronología de Eventos (Timeline Vertical) y Tabla de Auditoría
+// --------------------------------------------------------------------------
 function renderTimeline(movements, statusCategory) {
   timelineFeed.innerHTML = '';
 
@@ -1101,8 +1125,12 @@ function showError(msg, officialUrl, needSession = false) {
 }
 
 // ==========================================================================
-// Modal de Sesión de Entregar
+// SECCIÓN 5: GESTIÓN DE MODALES DEL SISTEMA
 // ==========================================================================
+
+// --------------------------------------------------------------------------
+// 5.1 Modal de Sesión Activa de Entregar (PHPSESSID)
+// --------------------------------------------------------------------------
 async function openSessionModal() {
   if (!sessionModal) return;
   sessionModal.classList.add('open');
@@ -1162,8 +1190,39 @@ async function handleSaveSessionCookie() {
   }
 }
 
+// --------------------------------------------------------------------------
+// 5.2 Modal de Presentación y Arquitectura Técnica del Sistema
+// --------------------------------------------------------------------------
+function openArchitectureModal() {
+  if (architectureModal) architectureModal.classList.add('open');
+}
+
+function closeArchitectureModal() {
+  if (architectureModal) architectureModal.classList.remove('open');
+}
+
+if (architectureBtn) architectureBtn.addEventListener('click', openArchitectureModal);
+if (footerArchitectureBtn) footerArchitectureBtn.addEventListener('click', openArchitectureModal);
+if (closeArchitectureModalBtn) closeArchitectureModalBtn.addEventListener('click', closeArchitectureModal);
+if (okArchitectureModalBtn) okArchitectureModalBtn.addEventListener('click', closeArchitectureModal);
+
+if (architectureModal) {
+  architectureModal.addEventListener('click', (e) => {
+    if (e.target === architectureModal) closeArchitectureModal();
+  });
+}
+
+// Cierre de modales con tecla Escape
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    closeArchitectureModal();
+    closeSessionModal();
+  }
+});
+
 // ==========================================================================
-// Historial de Búsquedas Recientes
+// SECCIÓN 6: HISTORIAL DE BÚSQUEDAS RECIENTES
+// ==========================================================================
 // ==========================================================================
 function addToRecent(order, carrier = 'urbano') {
   if (!order) return;
@@ -1216,7 +1275,7 @@ clearHistoryBtn.addEventListener('click', () => {
 });
 
 // ==========================================================================
-// Búsqueda por Lotes (Batch)
+// SECCIÓN 7: CONSULTA MASIVA POR LOTE (BATCH TRACKING)
 // ==========================================================================
 if (batchClearBtn) {
   batchClearBtn.addEventListener('click', () => {

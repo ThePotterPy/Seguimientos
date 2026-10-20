@@ -1,7 +1,7 @@
 {
-  "name": "pagina-sin-nombre",
+  "name": "seguimiento-bgh",
   "version": "1.0.0",
-  "description": "Página sin nombre - Seguimiento de envíos de Urbano Express y Andreani",
+  "description": "SEGUIMIENTO BGH - Sistema Unificado de Rastreo: Urbano Express, Correo Andreani y Entregar",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

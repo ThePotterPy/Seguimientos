@@ -1,7 +1,38 @@
-# 📦 Página sin nombre
-> *porque a Jorge no se le ocurre nada*
+# 📦 SEGUIMIENTO BGH
+> *Portal Unificado de Rastreo Logístico y Gestión de Cambios*
 
-Centro de seguimiento y rastreo oficial unificado para envíos de **Urbano Express** (cuenta consolidada `004185`) y **Correo Andreani** (con soporte para pedidos de Mercado Libre y acceso internacional directo sin bloqueo de IP).
+Centro de seguimiento y trazabilidad oficial unificado para envíos de **Urbano Express**, **Correo Andreani** y **Entregar** (BGH / Scriptcase), optimizado para distribución directa y logística inversa (cambios contra entrega y retiros).
+
+---
+
+## 🏗️ Arquitectura y Métodos de Rastreo por Courier
+
+### 1. Urbano Express (Portal Corporativo BGH)
+- **Identificación:** Opera con la cuenta consolidada corporativa BGH `004185`.
+- **Mecanismo:** Petición automatizada sobre el portal `https://apis.urbano.com.ar/cespecifica/` y posterior consulta asíncrona a `cespecifica/class/especifica_controller.php` para extraer la trazabilidad completa, móviles de reparto y confirmación de entrega con firma.
+
+### 2. Correo Andreani (Conexión Directa API Cifrada AES-256)
+- **Mecanismo:** Conexión directa contra los endpoints oficiales de `tracking-api.andreani.com` enrutada a través de las direcciones IP de Cloudflare Gateway (prevención de bloqueos por DNS/WAF).
+- **Criptografía:** Autenticación estricta y cifrado simétrico en tránsito **AES-256-CBC** (`idReceptor: 1, idSistema: 1`).
+- **Resolución Inteligente:** Mapea directamente códigos de compra de Mercado Libre (ej: `2000018875238250`) o números de guía oficial de 15 dígitos de Andreani, auditando el historial sin falsos positivos de entrega.
+
+### 3. Entregar (BGH / Scriptcase — Logística Inversa y Cambios)
+- **Simulación de Sesión Activa:** Emula a un usuario humano logueado en la plataforma Scriptcase (`svr.entregar.net.ar`) inyectando cookies `PHPSESSID`.
+- **Keep-Alive en Segundo Plano:** El servidor envía un ping silencioso cada 10 minutos para mantener la sesión viva permanentemente.
+- **Logística Inversa BGH:** Todos los reclamos y cambios de productos (de Mercado Libre, Andreani o Urbano) se procesan por la red de **Entregar**.
+  - `ZECO`: Venta original entregada por primera vez al cliente.
+  - `ZECH` (Despacho cambio) + `ZRE7` (Retiro cambio): Cambio contra entrega. El sistema vincula ambos automáticamente leyendo el *Campo Auxiliar de Texto 2*.
+  - `ZRE2`: Retiro directo de devolución por desistimiento.
+- **Desglose de Bultos y SKU:** Consulta la aplicación secundaria `apl_grid_detalle_pedido` para obtener el listado exacto de unidades por producto y el conteo de bultos físicos.
+
+---
+
+## ⚡ Stack Tecnológico
+
+- **Backend:** Node.js Nativo Puro (**Zero External Dependencies - 0 paquetes npm**). No utiliza Express, Axios ni Cheerio. Utiliza únicamente los módulos estándar `node:http`, `node:https`, `node:crypto`, `node:fs`. Consumo de memoria `<30 MB` de RAM y arranque en `<100 ms`.
+- **Criptografía:** Módulo nativo `node:crypto` con algoritmos AES-256-CBC.
+- **Frontend:** Single Page Application (SPA) ultraligera con HTML5 semántico, Tailwind CSS y Vanilla JS nativo sin pasos de build.
+- **Despliegue:** Optimizado para despliegue instantáneo en [Railway](https://railway.app).
 
 ---
 
