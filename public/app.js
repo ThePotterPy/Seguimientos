@@ -84,7 +84,7 @@ const officialLinkText = document.getElementById('officialLinkText');
 const productsSection = document.getElementById('productsSection');
 const productsCountBadge = document.getElementById('productsCountBadge');
 const bultosCountBadge = document.getElementById('bultosCountBadge');
-const productsTableBody = document.getElementById('productsTableBody');
+const productsListContainer = document.getElementById('productsListContainer');
 
 // Botón de consulta cruzada entre correos (cambios en Entregar, etc.)
 const crossCarrierBtn = document.getElementById('crossCarrierBtn');
@@ -745,71 +745,87 @@ function applySubOrderData(data, subOrder) {
     metaDestino.textContent = destName || destAddr || 'Nacional';
   }
 
-  const prodInfo = isSub ? subOrder.producto : (data.summary.producto || data.detail.producto);
-  if (prodInfo) {
-    metaCiclo.innerHTML = `<span class="text-slate-400 font-medium">Contenido general:</span> <span>${escapeHtml(prodInfo)}</span>`;
-  } else if (data.summary?.ciclo) {
-    metaCiclo.innerHTML = `<span class="text-slate-400 font-medium">Ciclo:</span> <span>${escapeHtml(data.summary.ciclo)}</span>`;
+  // Ciclo / Nota secundaria del pie
+  if (data.summary?.ciclo) {
+    metaCiclo.textContent = `Ciclo: ${data.summary.ciclo}`;
+    metaCiclo.parentElement.classList.remove('hidden');
   } else {
     metaCiclo.textContent = '';
   }
 
   // ========================================================================
-  // Renderizar Sección de Productos y Bultos
+  // Renderizar Sección de Productos y Bultos (Filas hacia abajo con cantidad)
   // ========================================================================
   const products = (isSub ? subOrder.products : data.products) || (data.detail && data.detail.products) || [];
   let bultosCount = (isSub ? subOrder.bultos : (data.bultos || (data.detail && data.detail.bultos))) || '';
   
   if (!bultosCount && products.length > 0) {
-    const sum = products.reduce((acc, p) => acc + (parseInt(p.bultos, 10) || 0), 0);
+    const sum = products.reduce((acc, p) => acc + (parseInt(p.bultos || p.cantidad, 10) || 0), 0);
     if (sum > 0) bultosCount = sum;
   }
   if (!bultosCount) bultosCount = '1';
 
-  if (productsSection) {
+  if (productsSection && productsListContainer) {
     if (products.length > 0) {
       productsSection.classList.remove('hidden');
       productsCountBadge.textContent = `${products.length} ${products.length === 1 ? 'producto' : 'productos'}`;
-      bultosCountBadge.textContent = `${bultosCount} ${bultosCount === '1' || bultosCount === 1 ? 'bulto' : 'bultos'}`;
-      productsTableBody.innerHTML = '';
+      bultosCountBadge.textContent = `${bultosCount} ${bultosCount === '1' || bultosCount === 1 ? 'bulto total' : 'bultos totales'}`;
+      productsListContainer.innerHTML = '';
 
       products.forEach((prod, pIdx) => {
-        const tr = document.createElement('tr');
-        const codeBadge = prod.codigo 
-          ? `<span class="font-mono-code font-bold text-xs bg-slate-100 text-slate-800 px-2 py-0.5 rounded border border-slate-200 select-all">${escapeHtml(prod.codigo)}</span>`
-          : `<span class="text-slate-400 font-mono-code text-xs">-</span>`;
-        
-        const bultosVal = prod.bultos || '1';
-        const bultosTag = `<span class="inline-flex items-center gap-1.5 text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-900 border border-amber-200"><i class="fa-solid fa-box text-[10px] text-amber-600"></i> ${escapeHtml(bultosVal)} ${bultosVal === '1' ? 'bulto' : 'bultos'}</span>`;
+        const item = document.createElement('div');
+        const bultosVal = prod.bultos || prod.cantidad || '1';
+        const numBultos = parseInt(bultosVal, 10) || 1;
+        const isMulti = numBultos > 1;
+        const bultosLabel = `${bultosVal} ${numBultos === 1 ? 'bulto' : 'bultos'}`;
 
         let metrics = [];
         if (prod.peso) metrics.push(`${escapeHtml(prod.peso)} kg`);
         if (prod.volumen) metrics.push(`${escapeHtml(prod.volumen)} m³`);
         const metricsStr = metrics.length > 0 
-          ? `<span class="font-mono-code text-xs text-slate-600 font-medium">${metrics.join(' • ')}</span>`
-          : `<span class="text-slate-400 text-xs">-</span>`;
+          ? `<span class="font-mono-code text-xs text-slate-500 font-medium">${metrics.join(' • ')}</span>`
+          : '';
 
-        tr.innerHTML = `
-          <td class="font-mono-code text-slate-400 text-xs text-center">${pIdx + 1}</td>
-          <td>${codeBadge}</td>
-          <td class="text-xs font-semibold text-slate-900 leading-relaxed">${escapeHtml(prod.descripcion || 'Producto')}</td>
-          <td class="text-center">${bultosTag}</td>
-          <td class="text-right">${metricsStr}</td>
+        item.className = 'flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3 rounded-xl bg-white border border-slate-200/90 shadow-2xs hover:border-slate-300 transition';
+        item.innerHTML = `
+          <div class="flex items-start sm:items-center gap-2.5 min-w-0 flex-1">
+            <div class="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg ${isMulti ? 'bg-amber-100 text-amber-950 border border-amber-300 font-extrabold shadow-2xs' : 'bg-slate-100 text-slate-800 border border-slate-200 font-bold'} text-xs" title="Cantidad de bultos de este producto">
+              <i class="fa-solid fa-box ${isMulti ? 'text-amber-700' : 'text-slate-500'} text-[11px]"></i>
+              <span>${bultosLabel}</span>
+            </div>
+            ${prod.codigo ? `
+              <span class="shrink-0 font-mono-code font-bold text-xs bg-slate-50 text-slate-700 px-2 py-0.5 rounded border border-slate-200 select-all" title="Código de producto">
+                ${escapeHtml(prod.codigo)}
+              </span>
+            ` : ''}
+            <span class="text-xs sm:text-sm font-semibold text-slate-800 leading-snug break-words">
+              ${escapeHtml(prod.descripcion || 'Producto')}
+            </span>
+          </div>
+          ${metricsStr ? `
+            <div class="shrink-0 self-end sm:self-center ml-2">
+              ${metricsStr}
+            </div>
+          ` : ''}
         `;
-        productsTableBody.appendChild(tr);
+        productsListContainer.appendChild(item);
       });
     } else if (prodInfo) {
       productsSection.classList.remove('hidden');
       productsCountBadge.textContent = '1 producto';
-      bultosCountBadge.textContent = `${bultosCount} ${bultosCount === '1' || bultosCount === 1 ? 'bulto' : 'bultos'}`;
-      productsTableBody.innerHTML = `
-        <tr>
-          <td class="font-mono-code text-slate-400 text-xs text-center">1</td>
-          <td><span class="text-slate-400 font-mono-code text-xs">-</span></td>
-          <td class="text-xs font-semibold text-slate-900 leading-relaxed">${escapeHtml(prodInfo)}</td>
-          <td class="text-center"><span class="inline-flex items-center gap-1.5 text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-900 border border-amber-200"><i class="fa-solid fa-box text-[10px] text-amber-600"></i> ${escapeHtml(bultosCount)} ${bultosCount === '1' || bultosCount === 1 ? 'bulto' : 'bultos'}</span></td>
-          <td class="text-right"><span class="text-slate-400 text-xs">-</span></td>
-        </tr>
+      bultosCountBadge.textContent = `${bultosCount} ${bultosCount === '1' || bultosCount === 1 ? 'bulto total' : 'bultos totales'}`;
+      productsListContainer.innerHTML = `
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3 rounded-xl bg-white border border-slate-200/90 shadow-2xs">
+          <div class="flex items-start sm:items-center gap-2.5 min-w-0 flex-1">
+            <div class="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 text-slate-800 border border-slate-200 font-bold text-xs">
+              <i class="fa-solid fa-box text-slate-500 text-[11px]"></i>
+              <span>${bultosCount} bulto${bultosCount > 1 ? 's' : ''}</span>
+            </div>
+            <span class="text-xs sm:text-sm font-semibold text-slate-800 leading-snug break-words">
+              ${escapeHtml(prodInfo)}
+            </span>
+          </div>
+        </div>
       `;
     } else {
       productsSection.classList.add('hidden');

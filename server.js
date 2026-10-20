@@ -861,7 +861,7 @@ function parseEntregarHtml(content) {
       direccion: [getField('direccion'), getField('idlocalidad'), getField('idprovincia')].filter(Boolean).join(', '),
       bultos: bultosVal || '1',
       peso: getField('peso_total_kg'),
-      producto: products.length > 0 ? products.map(p => p.descripcion || p.codigo).join(' | ') : getField('descripcion'),
+      producto: products.length > 0 ? products.map(p => `${p.bultos || 1}x ${p.descripcion || p.codigo}`).join(' • ') : getField('descripcion'),
       products,
       campoAuxiliar1: aux1,
       campoAuxiliar2: aux2,
