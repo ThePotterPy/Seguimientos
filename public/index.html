@@ -6,12 +6,13 @@
   <title>SEGUIMIENTO BGH | Rastreo Unificado Urbano, Andreani y Entregar</title>
   <link rel="icon" type="image/svg+xml" href="logo.svg">
   
-  <!-- Font Awesome Icons & Tailwind CDN -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Estilos e iconos servidos localmente -->
+  <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
+  <link rel="stylesheet" href="tailwind.css">
   <link rel="stylesheet" href="style.css">
 </head>
 <body class="flex flex-col min-h-screen">
+  <div id="liveStatus" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
 
   <!-- Barra Superior de Navegación -->
   <header class="bg-white border-b border-slate-200 sticky top-0 z-30">
@@ -41,9 +42,9 @@
       <div class="flex items-center gap-2 sm:gap-2.5">
         
         <!-- Segmented Carrier Control -->
-        <div class="carrier-segmented-switch" role="tablist" aria-label="Selección de empresa de correo">
+        <div class="carrier-segmented-switch" role="group" aria-label="Selección de empresa de correo">
           <button 
-            id="carrierUrbanoBtn" 
+            id="carrierUrbanoBtn" aria-pressed="true"
             type="button" 
             class="carrier-pill-btn active is-urbano"
             title="Consultar envíos en Urbano Express"
@@ -53,7 +54,7 @@
           </button>
           
           <button 
-            id="carrierAndreaniBtn" 
+            id="carrierAndreaniBtn" aria-pressed="false"
             type="button" 
             class="carrier-pill-btn is-andreani"
             title="Consultar envíos en Correo Andreani"
@@ -63,7 +64,7 @@
           </button>
 
           <button 
-            id="carrierEntregarBtn" 
+            id="carrierEntregarBtn" aria-pressed="false"
             type="button" 
             class="carrier-pill-btn is-entregar"
             title="Consultar envíos en Entregar"
@@ -116,11 +117,11 @@
 
     <!-- Pestañas de Modo (Individual vs Masivo) -->
     <div class="flex border-b border-slate-200">
-      <button id="tabSingle" class="nav-tab-clean active">
+      <button id="tabSingle" aria-pressed="true" class="nav-tab-clean active">
         <i class="fa-solid fa-magnifying-glass text-xs"></i>
         <span>Buscar un pedido</span>
       </button>
-      <button id="tabBatch" class="nav-tab-clean">
+      <button id="tabBatch" aria-pressed="false" class="nav-tab-clean">
         <i class="fa-solid fa-layer-group text-xs"></i>
         <span>Consulta por lote</span>
       </button>
@@ -147,7 +148,7 @@
             <i class="fa-solid fa-magnifying-glass search-prefix-icon"></i>
             <input 
               type="text" 
-              id="orderInput" 
+              id="orderInput" maxlength="120" aria-describedby="errorMessage"
               placeholder="Ingresá tu código, ej: 2745296ICBC" 
               required
               autocomplete="off"
@@ -215,7 +216,7 @@
             <h4 class="text-sm font-bold text-slate-900">No se encontraron datos del envío</h4>
             <p id="errorMessage" class="text-xs text-slate-600 mt-1 leading-relaxed"></p>
             <div class="mt-3.5 flex items-center gap-3 flex-wrap">
-              <a id="errorOfficialLink" href="#" target="_blank" class="text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline inline-flex items-center gap-1.5">
+              <a id="errorOfficialLink" href="#" target="_blank" rel="noopener noreferrer" class="text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline inline-flex items-center gap-1.5">
                 <span>Abrir consulta en el portal oficial</span>
                 <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
               </a>
@@ -313,7 +314,7 @@
               <a 
                 id="officialLinkBtn" 
                 href="#" 
-                target="_blank" 
+                target="_blank" rel="noopener noreferrer"
                 class="btn-primary-urbano px-4 py-2 text-xs"
               >
                 <span id="officialLinkText">Ver en Web Oficial</span>
@@ -517,11 +518,20 @@
           <span class="text-xs text-slate-400">Hasta 20 códigos por consulta</span>
         </div>
         <p class="text-xs text-slate-500 mb-4 leading-relaxed">
-          Pegá los números de pedido o guías (uno por línea o separados por comas). El sistema detectará automáticamente cada código.
+          Pegá los números de pedido o guías (uno por línea o separados por comas). Elegí detección automática o un transportista para todo el lote.
         </p>
 
-        <textarea 
-          id="batchTextarea" 
+        <label for="batchCarrier" class="block text-xs font-bold mb-1">Transportista del lote</label>
+        <select id="batchCarrier" class="border border-slate-300 rounded-lg p-2 text-sm mb-3">
+          <option value="auto">Detectar cada código automáticamente</option>
+          <option value="urbano">Todos por Urbano</option>
+          <option value="andreani">Todos por Andreani</option>
+          <option value="entregar">Todos por Entregar</option>
+        </select>
+        <label for="batchTextarea" class="block text-xs font-bold mb-1">Códigos de pedidos o guías</label>
+        <p id="batchHelp" class="text-xs text-slate-600 mb-2">Hasta 20 códigos por lote. No se descartarán pedidos sin avisarte.</p>
+        <textarea
+          id="batchTextarea" aria-describedby="batchHelp"
           rows="6" 
           placeholder="2745296ICBC&#10;2000018697823352&#10;1638408422772-01"
           class="w-full p-3.5 border border-slate-300 rounded-xl font-mono-code text-xs text-slate-900 focus:border-slate-800 focus:ring-1 focus:ring-slate-800 outline-none transition"
@@ -583,7 +593,7 @@
   </div>
 
   <!-- Modal para Configurar o Renovar Sesión de Entregar -->
-  <div id="sessionModal" class="modal-overlay">
+  <div id="sessionModal" class="modal-overlay" role="dialog" aria-modal="true" aria-label="Sesión de Entregar" aria-hidden="true" tabindex="-1">
     <div class="modal-card p-6">
       <div class="flex items-center justify-between pb-3 border-b border-slate-100">
         <div class="flex items-center gap-2.5">
@@ -595,14 +605,14 @@
             <p class="text-[11px] text-slate-400">Administrador de cookie activa</p>
           </div>
         </div>
-        <button id="closeSessionModalBtn" type="button" class="text-slate-400 hover:text-slate-600 p-1">
+        <button id="closeSessionModalBtn" aria-label="Cerrar diálogo" type="button" class="text-slate-400 hover:text-slate-600 p-1">
           <i class="fa-solid fa-xmark text-sm"></i>
         </button>
       </div>
 
       <div class="mt-4 space-y-3 text-xs text-slate-600">
         <p class="leading-relaxed">
-          Para consultar la plataforma <strong>svr.entregar.net.ar</strong>, se utiliza la cookie de sesión activa. La sesión se mantiene viva de fondo automáticamente.
+          Para consultar la plataforma <strong>svr.entregar.net.ar</strong>, se utiliza la cookie de sesión activa. El servidor comprueba periódicamente su vigencia; el proveedor puede exigir una renovación.
         </p>
         <div>
           <label for="sessionCookieInput" class="block font-bold text-slate-800 mb-1">Cookie de sesión (PHPSESSID / PHPSESSID_):</label>
@@ -628,7 +638,7 @@
   <!-- ======================================================================
        MODAL DE PRESENTACIÓN / ARQUITECTURA TÉCNICA DEL SISTEMA
        ====================================================================== -->
-  <div id="architectureModal" class="modal-overlay">
+  <div id="architectureModal" class="modal-overlay" role="dialog" aria-modal="true" aria-label="Cómo funciona el seguimiento" aria-hidden="true" tabindex="-1">
     <div class="modal-card modal-card-lg p-5 sm:p-7">
       
       <!-- Cabecera del Modal -->
@@ -649,7 +659,7 @@
             <p class="text-xs text-slate-500">Documentación técnica, métodos de extracción por courier y tecnología empleada</p>
           </div>
         </div>
-        <button id="closeArchitectureModalBtn" type="button" class="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-100 transition cursor-pointer">
+        <button id="closeArchitectureModalBtn" aria-label="Cerrar diálogo" type="button" class="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-100 transition cursor-pointer">
           <i class="fa-solid fa-xmark text-base"></i>
         </button>
       </div>
@@ -806,7 +816,7 @@
                 <span>Node.js Nativo (Zero External Dependencies)</span>
               </div>
               <p class="text-slate-600 text-[11px] leading-relaxed">
-                El backend fue desarrollado 100% con módulos estándar de Node.js (<code class="text-[10px]">http</code>, <code class="text-[10px]">https</code>, <code class="text-[10px]">crypto</code>, <code class="text-[10px]">fs</code>), <strong>sin ninguna dependencia de npm</strong> (sin Express, Axios ni Cheerio). Esto garantiza arranque en <strong class="text-slate-800">&lt;100 ms</strong>, consumo menor a <strong class="text-slate-800">30 MB de RAM</strong> y máxima estabilidad de despliegue en Railway.
+                El backend fue desarrollado 100% con módulos estándar de Node.js (<code class="text-[10px]">http</code>, <code class="text-[10px]">https</code>, <code class="text-[10px]">crypto</code>, <code class="text-[10px]">fs</code>), <strong>sin dependencias de ejecución de npm</strong> (sin Express, Axios ni Cheerio). Los estilos e iconos se compilan con dependencias de desarrollo y se sirven localmente. El rendimiento depende del entorno.
               </p>
             </div>
 
@@ -816,7 +826,7 @@
                 <span>Criptografía & Cloudflare Direct Gateway</span>
               </div>
               <p class="text-slate-600 text-[11px] leading-relaxed">
-                Implementación de algoritmos <strong>AES-256-CBC</strong> para cifrado y descifrado de peticiones con Andreani. Soporta enrutamiento directo por sockets HTTPS hacia bloques IP de Cloudflare con SNI dinámico para evitar bloqueos por DNS, firewall o protecciones de red.
+                Implementación de algoritmos <strong>AES-256-CBC</strong> para cifrado y descifrado de peticiones con Andreani. Usa DNS y alternativas de conexión de la integración, con certificado TLS verificado y límites de tiempo. La configuración de acceso se guarda de forma privada.
               </p>
             </div>
 
@@ -826,7 +836,7 @@
                 <span>Frontend Ultraliviano y Reactivo</span>
               </div>
               <p class="text-slate-600 text-[11px] leading-relaxed">
-                Single Page Application (SPA) en Vanilla JavaScript nativo con Tailwind CSS y Font Awesome 6.5. Carga instantánea, animaciones sutiles, Bento Grid modular, soporte para búsquedas masivas y guardado local seguro en <code class="text-[10px]">localStorage</code>.
+                Single Page Application (SPA) en Vanilla JavaScript nativo con Tailwind CSS y Font Awesome 6.5. Carga instantánea, animaciones sutiles, Bento Grid modular, soporte para búsquedas masivas y historial local recuperable en <code class="text-[10px]">localStorage</code>.
               </p>
             </div>
 

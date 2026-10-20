@@ -1,12 +1,7 @@
 @echo off
 chcp 65001 > nul
-title Rastreador Urbano Express
-echo ===================================================
-echo   Iniciando Rastreador Urbano Express...
-echo   Abriendo navegador en http://localhost:3333
-echo ===================================================
-timeout /t 1 /nobreak > nul
-start http://localhost:3333
+cd /d "%~dp0"
+title SEGUIMIENTO BGH
+start "" /b node -e "setTimeout(()=>require('child_process').exec('start http://localhost:3333'),1500)"
 node server.js
-
 pause

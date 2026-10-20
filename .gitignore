@@ -7,3 +7,9 @@ yarn-error.log*
 .env
 .env.local
 scratch/
+
+.private/
+entregar_session.json
+.env.*
+!.env.example
+coverage/

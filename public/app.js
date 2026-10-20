@@ -1,3 +1,25 @@
+const safeStorage = {
+  getItem(key) { try { return localStorage.getItem(key); } catch { return null; } },
+  setItem(key, value) { try { localStorage.setItem(key, value); } catch {} },
+  removeItem(key) { try { localStorage.removeItem(key); } catch {} }
+};
+function readRecentSearches() {
+  try {
+    const parsed = JSON.parse(safeStorage.getItem('urbano_recent_searches') || '[]');
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(item => typeof item === 'string' || (item && typeof item.order === 'string' && ['urbano','andreani','entregar'].includes(item.carrier))).slice(0,8);
+  } catch { return []; }
+}
+function safeQuantity(value) {
+  const text = String(value ?? '').trim();
+  return /^\d{1,6}$/.test(text) && Number(text) > 0 ? String(Number(text)) : '1';
+}
+let trackingController;
+let trackingSequence = 0;
+function announce(message) {
+  const node = document.getElementById('liveStatus');
+  if (node) node.textContent = message;
+}
 // ==========================================================================
 // SEGUIMIENTO BGH — Lógica Frontend (Single Page Application)
 // Rastreo Unificado en Tiempo Real: Urbano Express, Correo Andreani y Entregar
@@ -8,9 +30,10 @@
 // ==========================================================================
 
 // Estado de la aplicación
-let currentCarrier = localStorage.getItem('selected_carrier') || 'urbano';
+let currentCarrier = safeStorage.getItem('selected_carrier') || 'urbano';
+if (!['urbano','andreani','entregar'].includes(currentCarrier)) currentCarrier = 'urbano';
 const currentShipper = '004185'; // Cuenta consolidada fija BGH (Urbano)
-let recentSearches = JSON.parse(localStorage.getItem('urbano_recent_searches') || '[]');
+let recentSearches = readRecentSearches();
 let lastTrackedData = null;
 let currentViewMode = 'timeline'; // 'timeline' o 'table'
 
@@ -164,7 +187,7 @@ function init() {
 
   // Tecla '/' para enfocar el buscador
   window.addEventListener('keydown', (e) => {
-    if (e.key === '/' && document.activeElement !== orderInput && document.activeElement !== batchTextarea) {
+    if (e.key === '/' && !document.activeElement?.closest('input, textarea, select, [contenteditable], [role=dialog]')) {
       e.preventDefault();
       orderInput.focus();
     }
@@ -230,7 +253,9 @@ function init() {
 // ==========================================================================
 function setCarrier(carrier, clearViews = true) {
   currentCarrier = carrier;
-  localStorage.setItem('selected_carrier', currentCarrier);
+  if (clearViews) { trackingSequence++; trackingController?.abort(); loadingBox.classList.add('hidden'); submitBtn.disabled = false; submitBtn.classList.remove('opacity-50'); }
+  for (const [name, button] of [['urbano',carrierUrbanoBtn],['andreani',carrierAndreaniBtn],['entregar',carrierEntregarBtn]]) button?.setAttribute('aria-pressed', String(name === carrier));
+  safeStorage.setItem('selected_carrier', currentCarrier);
 
   if (clearViews) {
     resultBox.classList.add('hidden');
@@ -329,6 +354,7 @@ function autoDetectCarrier(code) {
 // ==========================================================================
 tabSingle.addEventListener('click', () => {
   tabSingle.classList.add('active');
+  tabSingle.setAttribute('aria-pressed','true'); tabBatch.setAttribute('aria-pressed','false');
   tabBatch.classList.remove('active');
   singleSearchView.classList.remove('hidden');
   batchSearchView.classList.add('hidden');
@@ -336,6 +362,7 @@ tabSingle.addEventListener('click', () => {
 
 tabBatch.addEventListener('click', () => {
   tabBatch.classList.add('active');
+  tabBatch.setAttribute('aria-pressed','true'); tabSingle.setAttribute('aria-pressed','false');
   tabSingle.classList.remove('active');
   batchSearchView.classList.remove('hidden');
   singleSearchView.classList.add('hidden');
@@ -423,6 +450,15 @@ trackForm.addEventListener('submit', (e) => {
 // Consulta al Servidor (API Tracking)
 // ==========================================================================
 async function performTrack(order) {
+  if (!order || order.length > 120 || /[\x00-\x1f\x7f]/.test(order)) { showError('Ingresá un código válido de hasta 120 caracteres.'); return; }
+  trackingController?.abort();
+  const controller = new AbortController(); trackingController = controller;
+  const sequence = ++trackingSequence;
+  const carrier = currentCarrier;
+  const deadline = setTimeout(() => controller.abort('timeout'), 35000);
+  announce('Consultando envío.');
+  orderInput.removeAttribute('aria-invalid');
+  resultBox.setAttribute('aria-busy','true');
   const newUrl = new URL(window.location);
   newUrl.searchParams.set('order', order);
   newUrl.searchParams.set('carrier', currentCarrier);
@@ -443,8 +479,9 @@ async function performTrack(order) {
   submitBtn.classList.add('opacity-50');
 
   try {
-    const res = await fetch(`/api/track?order=${encodeURIComponent(order)}&shipper=${encodeURIComponent(currentShipper)}&carrier=${encodeURIComponent(currentCarrier)}`);
+    const res = await fetch(`/api/track?order=${encodeURIComponent(order)}&shipper=${encodeURIComponent(currentShipper)}&carrier=${encodeURIComponent(carrier)}`, { signal: controller.signal });
     const data = await res.json();
+    if (sequence !== trackingSequence) return;
 
     if (!data.success) {
       showError(data.message || 'No se encontró el envío.', data.officialUrl, data.needSession);
@@ -453,13 +490,19 @@ async function performTrack(order) {
 
     lastTrackedData = data;
     renderResult(data);
+    announce(`Resultado: ${data.statusLabel || 'consulta completada'}.`);
     addToRecent(order, data.carrier || currentCarrier);
   } catch (err) {
+    if (sequence !== trackingSequence) return;
+    if (controller.signal.aborted) { showError('La consulta agotó el tiempo de espera. Reintentá.'); return; }
     let fallbackUrl = `https://apis.urbano.com.ar/cespecifica/?tracking=${currentShipper}${order}`;
     if (currentCarrier === 'andreani') fallbackUrl = `https://www.andreani.com/envio/${encodeURIComponent(order)}`;
     if (currentCarrier === 'entregar') fallbackUrl = `https://svr.entregar.net.ar/tracking_bgh/landingPage.php?numero_orden=${encodeURIComponent(order)}&numero_hash=&boton=Consultar`;
     showError(`Error de conexión con el servidor: ${err.message}`, fallbackUrl);
   } finally {
+    clearTimeout(deadline);
+    if (sequence !== trackingSequence) return;
+    resultBox.setAttribute('aria-busy','false');
     loadingBox.classList.add('hidden');
     submitBtn.disabled = false;
     submitBtn.classList.remove('opacity-50');
@@ -604,7 +647,7 @@ function renderResult(data) {
           <div class="suborder-sub flex items-center justify-between gap-2 mt-1">
             <span>Remito: <strong>${escapeHtml(remitoStr || 'S/N')}</strong></span>
             <span class="inline-flex items-center gap-1 text-[10px] font-semibold text-slate-600 bg-white/90 px-1.5 py-0.5 rounded border border-slate-200">
-              <i class="fa-solid fa-box text-[9px] text-amber-600"></i> ${bultosLabel}
+              <i class="fa-solid fa-box text-[9px] text-amber-600"></i> ${escapeHtml(bultosLabel)}
             </span>
           </div>
         </span>
@@ -729,7 +772,7 @@ function applySubOrderData(data, subOrder) {
             [...subOrdersList.children].forEach((c, idx) => {
               c.classList.toggle('active', idx === paired.index);
             });
-            subOrdersList.children[paired.index].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            subOrdersList.children[paired.index].scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'nearest', inline: 'center' });
           }
         }
       };
@@ -785,7 +828,7 @@ function applySubOrderData(data, subOrder) {
     const sum = products.reduce((acc, p) => acc + (parseInt(p.bultos || p.cantidad, 10) || 0), 0);
     if (sum > 0) bultosCount = sum;
   }
-  if (!bultosCount) bultosCount = '1';
+  bultosCount = safeQuantity(bultosCount);
 
   if (productsSection && productsListContainer) {
     if (products.length > 0) {
@@ -796,7 +839,7 @@ function applySubOrderData(data, subOrder) {
 
       products.forEach((prod, pIdx) => {
         const item = document.createElement('div');
-        const bultosVal = prod.bultos || prod.cantidad || '1';
+        const bultosVal = safeQuantity(prod.bultos || prod.cantidad);
         const numBultos = parseInt(bultosVal, 10) || 1;
         const isMulti = numBultos > 1;
         const bultosLabel = `${bultosVal} ${numBultos === 1 ? 'bulto' : 'bultos'}`;
@@ -813,7 +856,7 @@ function applySubOrderData(data, subOrder) {
           <div class="flex items-start sm:items-center gap-2.5 min-w-0 flex-1">
             <div class="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg ${isMulti ? 'bg-amber-100 text-amber-950 border border-amber-300 font-extrabold shadow-2xs' : 'bg-slate-100 text-slate-800 border border-slate-200 font-bold'} text-xs" title="Cantidad de bultos de este producto">
               <i class="fa-solid fa-box ${isMulti ? 'text-amber-700' : 'text-slate-500'} text-[11px]"></i>
-              <span>${bultosLabel}</span>
+              <span>${escapeHtml(bultosLabel)}</span>
             </div>
             ${prod.codigo ? `
               <span class="shrink-0 font-mono-code font-bold text-xs bg-slate-50 text-slate-700 px-2 py-0.5 rounded border border-slate-200 select-all" title="Código de producto">
@@ -841,7 +884,7 @@ function applySubOrderData(data, subOrder) {
           <div class="flex items-start sm:items-center gap-2.5 min-w-0 flex-1">
             <div class="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 text-slate-800 border border-slate-200 font-bold text-xs">
               <i class="fa-solid fa-box text-slate-500 text-[11px]"></i>
-              <span>${bultosCount} bulto${bultosCount > 1 ? 's' : ''}</span>
+              <span>${escapeHtml(bultosCount)} bulto${bultosCount > 1 ? 's' : ''}</span>
             </div>
             <span class="text-xs sm:text-sm font-semibold text-slate-800 leading-snug break-words">
               ${escapeHtml(prodInfo)}
@@ -1059,6 +1102,7 @@ async function copyText(text, toastMsg) {
 function showToast(message, type = 'success') {
   if (!toastNotification) return;
   toastMessage.textContent = message;
+  announce(message);
   toastNotification.className = `toast-notification show ${type}`;
 
   if (type === 'success') {
@@ -1079,6 +1123,8 @@ function showToast(message, type = 'success') {
 // Manejo de Errores
 // ==========================================================================
 function showError(msg, officialUrl, needSession = false) {
+  announce(msg);
+  orderInput.setAttribute('aria-invalid','true');
   if (needSession) {
     errorMessage.innerHTML = `
       <span>${escapeHtml(msg)}</span>
@@ -1133,19 +1179,19 @@ function showError(msg, officialUrl, needSession = false) {
 // --------------------------------------------------------------------------
 async function openSessionModal() {
   if (!sessionModal) return;
-  sessionModal.classList.add('open');
+  openDialog(sessionModal);
   sessionStatusMsg.className = 'hidden';
 
   try {
     const res = await fetch('/api/entregar/session');
     const data = await res.json();
     if (data.success) {
-      if (data.hasCookie) {
+      if (data.hasCookie && data.lastPingStatus === true) {
         sessionStatusMsg.className = 'p-2.5 rounded-lg text-xs font-medium bg-emerald-50 text-emerald-800 border border-emerald-200';
         sessionStatusMsg.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-600 mr-1.5"></i> Sesión actualmente activa en el servidor. ${data.lastPing ? '(Último ping: ' + new Date(data.lastPing).toLocaleTimeString() + ')' : ''}`;
       } else {
         sessionStatusMsg.className = 'p-2.5 rounded-lg text-xs font-medium bg-amber-50 text-amber-800 border border-amber-200';
-        sessionStatusMsg.innerHTML = '<i class="fa-solid fa-triangle-exclamation text-amber-600 mr-1.5"></i> No hay cookie configurada en el servidor.';
+        sessionStatusMsg.innerHTML = '<i class="fa-solid fa-triangle-exclamation text-amber-600 mr-1.5"></i> No hay una sesión verificada actualmente. Guardá una cookie para comprobarla.';
       }
     }
   } catch (e) {
@@ -1154,7 +1200,7 @@ async function openSessionModal() {
 }
 
 function closeSessionModal() {
-  if (sessionModal) sessionModal.classList.remove('open');
+  closeDialog(sessionModal);
 }
 
 async function handleSaveSessionCookie() {
@@ -1175,7 +1221,7 @@ async function handleSaveSessionCookie() {
     });
     const data = await res.json();
 
-    if (data.success) {
+    if (data.success && data.verified) {
       showToast('Sesión de Entregar actualizada con éxito', 'success');
       closeSessionModal();
       sessionCookieInput.value = '';
@@ -1194,11 +1240,11 @@ async function handleSaveSessionCookie() {
 // 5.2 Modal de Presentación y Arquitectura Técnica del Sistema
 // --------------------------------------------------------------------------
 function openArchitectureModal() {
-  if (architectureModal) architectureModal.classList.add('open');
+  openDialog(architectureModal);
 }
 
 function closeArchitectureModal() {
-  if (architectureModal) architectureModal.classList.remove('open');
+  closeDialog(architectureModal);
 }
 
 if (architectureBtn) architectureBtn.addEventListener('click', openArchitectureModal);
@@ -1232,7 +1278,7 @@ function addToRecent(order, carrier = 'urbano') {
     ...recentSearches.filter(s => (typeof s === 'string' ? s : s.order).toLowerCase() !== order.toLowerCase())
   ].slice(0, 8);
 
-  localStorage.setItem('urbano_recent_searches', JSON.stringify(recentSearches));
+  safeStorage.setItem('urbano_recent_searches', JSON.stringify(recentSearches));
   renderRecentSearches();
 }
 
@@ -1269,7 +1315,7 @@ function renderRecentSearches() {
 
 clearHistoryBtn.addEventListener('click', () => {
   recentSearches = [];
-  localStorage.removeItem('urbano_recent_searches');
+  safeStorage.removeItem('urbano_recent_searches');
   renderRecentSearches();
   showToast('Historial limpiado', 'info');
 });
@@ -1294,6 +1340,7 @@ batchSubmitBtn.addEventListener('click', async () => {
 
   const orders = text.split(/[\n,;]+/).map(s => s.trim()).filter(Boolean);
   if (orders.length === 0) return;
+  if (orders.length > 20 || orders.some(order => order.length > 120)) { showToast('Ingresá hasta 20 códigos, de hasta 120 caracteres cada uno.', 'error'); return; }
 
   batchSubmitBtn.disabled = true;
   batchSubmitBtn.classList.add('opacity-50');
@@ -1301,11 +1348,16 @@ batchSubmitBtn.addEventListener('click', async () => {
   batchResultsBox.classList.remove('hidden');
   batchTableBody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-slate-400">Consultando ${orders.length} pedidos en el sistema...</td></tr>`;
 
+  const controller = new AbortController();
+  const deadline = setTimeout(() => controller.abort(), 210000);
+  batchResultsBox.setAttribute('aria-busy','true');
+  announce(`Consultando ${orders.length} pedidos.`);
   try {
     const res = await fetch('/api/track-batch', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ orders, shipper: currentShipper, carrier: currentCarrier })
+      signal: controller.signal,
+      body: JSON.stringify({ orders, shipper: currentShipper, carrier: document.getElementById('batchCarrier').value })
     });
     const data = await res.json();
 
@@ -1315,9 +1367,12 @@ batchSubmitBtn.addEventListener('click', async () => {
     }
 
     renderBatchResults(data.results || []);
+    announce(`Lote completado: ${data.count} pedidos.`);
   } catch (err) {
     batchTableBody.innerHTML = `<tr><td colspan="6" class="py-4 text-center text-red-600">Error: ${escapeHtml(err.message)}</td></tr>`;
   } finally {
+    clearTimeout(deadline);
+    batchResultsBox.setAttribute('aria-busy','false');
     batchSubmitBtn.disabled = false;
     batchSubmitBtn.classList.remove('opacity-50');
     batchSubmitBtn.innerHTML = '<i class="fa-solid fa-play text-[10px]"></i> Consultar lote de pedidos';
@@ -1337,8 +1392,8 @@ function renderBatchResults(results) {
       : 'bg-red-50 text-red-800 border-red-200';
 
     const badge = item.success 
-      ? `<span class="text-xs font-semibold px-2.5 py-0.5 rounded-full border ${badgeColor}">${escapeHtml(item.statusLabel || item.summary.estadoRaw || 'En proceso')}</span>`
-      : `<span class="text-xs font-semibold px-2.5 py-0.5 rounded-full border bg-red-50 text-red-800 border-red-200">No encontrado</span>`;
+      ? `<span class="text-xs font-semibold px-2.5 py-0.5 rounded-full border ${badgeColor}">${escapeHtml(item.statusLabel || item.summary?.estadoRaw || 'En proceso')}</span>`
+      : `<span class="text-xs font-semibold px-2.5 py-0.5 rounded-full border bg-red-50 text-red-800 border-red-200">${escapeHtml(item.message || 'Consulta no completada')}</span>`;
 
     let carrierName = 'Urbano';
     let carrierTag = '<span class="text-[10px] font-bold text-red-700 bg-red-50 px-1.5 py-0.5 rounded border border-red-200">Urbano</span>';
@@ -1353,11 +1408,11 @@ function renderBatchResults(results) {
     tr.innerHTML = `
       <td class="font-mono-code font-bold text-slate-900">${escapeHtml(item.order)}</td>
       <td>${carrierTag}</td>
-      <td class="font-mono-code text-slate-600">${item.success ? escapeHtml(item.guiaNumero || item.summary.guiaNumero || '-') : '-'}</td>
+      <td class="font-mono-code text-slate-600">${item.success ? escapeHtml(item.guiaNumero || item.summary?.guiaNumero || '-') : '-'}</td>
       <td>${badge}</td>
-      <td class="font-mono-code text-xs text-slate-500">${item.success ? escapeHtml(item.summary.fechaEstado || '-') : '-'}</td>
+      <td class="font-mono-code text-xs text-slate-500">${item.success ? escapeHtml(item.summary?.fechaEstado || '-') : '-'}</td>
       <td style="text-align: right;">
-        <a href="${escapeHtml(item.officialUrl)}" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline text-xs font-semibold inline-flex items-center gap-1">
+        <a href="${escapeHtml(item.officialUrl)}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 hover:underline text-xs font-semibold inline-flex items-center gap-1">
           <span>Portal ${carrierName}</span>
           <i class="fa-solid fa-arrow-up-right-from-square text-[9px]"></i>
         </a>
@@ -1378,5 +1433,34 @@ function escapeHtml(str) {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
 }
+
+const dialogStates = new Map();
+function openDialog(modal) {
+  if (!modal || modal.classList.contains('open')) return;
+  for (const other of dialogStates.keys()) closeDialog(other);
+  const state = { focus: document.activeElement, inert: [] };
+  for (const node of document.body.children) {
+    if (node !== modal && node.id !== 'liveStatus') { state.inert.push([node,node.inert]); node.inert = true; }
+  }
+  dialogStates.set(modal, state);
+  modal.classList.add('open'); modal.removeAttribute('aria-hidden');
+  (modal.querySelector('button, textarea, input, [tabindex]') || modal).focus();
+}
+function closeDialog(modal) {
+  if (!modal || !dialogStates.has(modal)) return;
+  const state = dialogStates.get(modal); dialogStates.delete(modal);
+  modal.classList.remove('open'); modal.setAttribute('aria-hidden','true');
+  for (const [node, wasInert] of state.inert) node.inert = wasInert;
+  if (state.focus?.isConnected) state.focus.focus();
+}
+document.addEventListener('keydown', event => {
+  const modal = [...dialogStates.keys()][0];
+  if (!modal || event.key !== 'Tab') return;
+  const elements = [...modal.querySelectorAll('button, input, textarea, select, a[href], [tabindex="0"]')].filter(node => !node.disabled && node.getClientRects().length);
+  const first = elements[0], last = elements[elements.length - 1];
+  if (!first) { event.preventDefault(); modal.focus(); return; }
+  if (event.shiftKey && (document.activeElement === first || document.activeElement === modal)) { event.preventDefault(); last.focus(); }
+  else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+});
 
 init();
