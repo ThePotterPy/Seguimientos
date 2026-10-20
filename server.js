@@ -568,7 +568,7 @@ function pingEntregar() {
         'Cookie': cookie,
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
       },
-      timeout: 8000
+      timeout: 15000
     }, (res) => {
       let body = '';
       res.on('data', chunk => body += chunk);
@@ -902,7 +902,7 @@ function parseEntregarHtml(content) {
   return pedidos;
 }
 
-async function trackEntregar(rawOrder) {
+function executeTrackEntregar(rawOrder) {
   const code = (rawOrder || '').trim();
   const cookie = getEntregarCookie();
   const searchPostUrl = 'https://svr.entregar.net.ar/e_transport/grid_view_consulta_pedidos/';
@@ -925,7 +925,7 @@ async function trackEntregar(rawOrder) {
         'Referer': searchPostUrl,
         'X-Requested-With': 'XMLHttpRequest'
       },
-      timeout: 10000
+      timeout: 25000
     }, (res) => {
       let body = '';
       res.on('data', chunk => body += chunk);
@@ -1047,6 +1047,17 @@ async function trackEntregar(rawOrder) {
     req.write(postData);
     req.end();
   });
+}
+
+async function trackEntregar(rawOrder) {
+  // Reintento automático en caso de timeout o microcorte con svr.entregar.net.ar
+  let res = await executeTrackEntregar(rawOrder);
+  if (!res.success && res.message && (res.message.includes('Tiempo de espera') || res.message.includes('Error de red'))) {
+    console.log(`[Entregar] Reintentando consulta para ${rawOrder}...`);
+    await new Promise(r => setTimeout(r, 1200));
+    res = await executeTrackEntregar(rawOrder);
+  }
+  return res;
 }
 
 // ============================================================================
