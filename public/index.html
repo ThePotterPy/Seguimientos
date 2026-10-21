@@ -1,886 +1,1143 @@
 <!DOCTYPE html>
 <html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SEGUIMIENTO BGH | Rastreo Unificado Urbano, Andreani y Entregar</title>
-  <link rel="icon" type="image/svg+xml" href="logo.svg">
-  
-  <!-- Estilos e iconos servidos localmente -->
-  <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
-  <link rel="stylesheet" href="tailwind.css">
-  <link rel="stylesheet" href="style.css">
-</head>
-<body class="flex flex-col min-h-screen">
-  <div id="liveStatus" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SEGUIMIENTO BGH | Rastreo Unificado Urbano, Andreani y Entregar</title>
+    <link rel="icon" type="image/svg+xml" href="logo.svg" />
 
-  <!-- Barra Superior de Navegación -->
-  <header class="bg-white border-b border-slate-200 sticky top-0 z-30">
-    <div class="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
-      
-      <!-- Marca & Identidad -->
-      <div class="flex items-center gap-3">
-        <a href="/" class="flex items-center gap-3 group focus:outline-none">
-          <img id="headerLogo" src="logo.svg" alt="Logo" class="h-9 w-9 transition-transform group-hover:scale-105">
-          <div class="flex flex-col">
-            <div class="flex items-center gap-2">
-              <span class="text-sm sm:text-base font-extrabold text-slate-900 tracking-tight leading-tight">
-                SEGUIMIENTO BGH
-              </span>
-              <span class="hidden md:inline-flex text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
-                Tracking Hub
+    <!-- Estilos e iconos servidos localmente -->
+    <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css" />
+    <link rel="stylesheet" href="tailwind.css" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body class="flex flex-col min-h-screen">
+    <div id="liveStatus" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+
+    <!-- Barra Superior de Navegación -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30">
+      <div class="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+        <!-- Marca & Identidad -->
+        <div class="flex items-center gap-3">
+          <a href="/" class="flex items-center gap-3 group focus:outline-none">
+            <img
+              id="headerLogo"
+              src="logo.svg"
+              alt="Logo"
+              class="h-9 w-9 transition-transform group-hover:scale-105"
+            />
+            <div class="flex flex-col">
+              <div class="flex items-center gap-2">
+                <span
+                  class="text-sm sm:text-base font-extrabold text-slate-900 tracking-tight leading-tight"
+                >
+                  SEGUIMIENTO BGH
+                </span>
+                <span
+                  class="hidden md:inline-flex text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200"
+                >
+                  Tracking Hub
+                </span>
+              </div>
+              <span class="text-[11px] text-slate-400 font-medium leading-none">
+                Portal Unificado de Envíos y Cambios BGH
               </span>
             </div>
-            <span class="text-[11px] text-slate-400 font-medium leading-none">
-              Portal Unificado de Envíos y Cambios BGH
-            </span>
-          </div>
-        </a>
-      </div>
-
-      <!-- Controles de Encabezado: Selector de Empresa y Cuenta -->
-      <div class="flex items-center gap-2 sm:gap-2.5">
-        
-        <!-- Segmented Carrier Control -->
-        <div class="carrier-segmented-switch" role="group" aria-label="Selección de empresa de correo">
-          <button 
-            id="carrierUrbanoBtn" aria-pressed="true"
-            type="button" 
-            class="carrier-pill-btn active is-urbano"
-            title="Consultar envíos en Urbano Express"
-          >
-            <span class="carrier-dot"></span>
-            <span>Urbano</span>
-          </button>
-          
-          <button 
-            id="carrierAndreaniBtn" aria-pressed="false"
-            type="button" 
-            class="carrier-pill-btn is-andreani"
-            title="Consultar envíos en Correo Andreani"
-          >
-            <span class="carrier-dot"></span>
-            <span>Andreani</span>
-          </button>
-
-          <button 
-            id="carrierEntregarBtn" aria-pressed="false"
-            type="button" 
-            class="carrier-pill-btn is-entregar"
-            title="Consultar envíos en Entregar"
-          >
-            <span class="carrier-dot"></span>
-            <span>Entregar</span>
-          </button>
+          </a>
         </div>
 
-        <!-- Cuenta Despacho Fija (Urbano) -->
-        <div 
-          id="shipperBadgeContainer" 
-          class="hidden md:inline-flex items-center gap-1.5 text-xs text-slate-600 bg-slate-50 border border-slate-200 px-2.5 py-1.5 rounded-lg select-none" 
-          title="Cuenta consolidada de despacho BGH (fija y no modificable)"
-        >
-          <i class="fa-solid fa-lock text-[10px] text-slate-400"></i>
-          <span class="text-slate-500 font-medium">Cuenta:</span>
-          <strong class="font-mono-code text-slate-900 font-bold">004185</strong>
-        </div>
-
-        <!-- Botón de Sesión Entregar -->
-        <button 
-          id="entregarSessionBtn" 
-          type="button" 
-          class="hidden text-xs text-slate-600 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 px-2.5 py-1.5 rounded-lg transition items-center gap-1.5 cursor-pointer"
-          title="Verificar o renovar cookie de sesión en Entregar"
-        >
-          <i class="fa-solid fa-key text-[10px] text-emerald-600"></i>
-          <span class="hidden sm:inline">Sesión</span>
-        </button>
-
-        <!-- Botón Presentación / Arquitectura Técnica -->
-        <button 
-          id="architectureBtn" 
-          type="button" 
-          class="text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 px-2.5 py-1.5 rounded-lg transition inline-flex items-center gap-1.5 cursor-pointer shadow-sm"
-          title="Ver cómo funciona el rastreo y la arquitectura técnica del sistema para presentación"
-        >
-          <i class="fa-solid fa-circle-question text-blue-600 text-xs"></i>
-          <span class="hidden sm:inline font-semibold">¿Cómo funciona?</span>
-        </button>
-
-      </div>
-
-    </div>
-  </header>
-
-  <!-- Contenedor Principal -->
-  <main class="max-w-5xl w-full mx-auto px-4 sm:px-6 py-8 flex-1 space-y-6">
-
-    <!-- Pestañas de Modo (Individual vs Masivo) -->
-    <div class="flex border-b border-slate-200">
-      <button id="tabSingle" aria-pressed="true" class="nav-tab-clean active">
-        <i class="fa-solid fa-magnifying-glass text-xs"></i>
-        <span>Buscar un pedido</span>
-      </button>
-      <button id="tabBatch" aria-pressed="false" class="nav-tab-clean">
-        <i class="fa-solid fa-layer-group text-xs"></i>
-        <span>Consulta por lote</span>
-      </button>
-    </div>
-
-    <!-- ====================================================================
-         VISTA 1: BÚSQUEDA INDIVIDUAL
-         ==================================================================== -->
-    <div id="singleSearchView" class="space-y-6">
-
-      <!-- Caja Principal de Búsqueda -->
-      <div class="card-clean p-5 sm:p-6">
-        <div class="flex items-center justify-between mb-2.5">
-          <label for="orderInput" id="searchLabel" class="block text-xs sm:text-sm font-bold text-slate-900">
-            Número de pedido o código de compra (Urbano):
-          </label>
-          <span id="carrierIndicatorTag" class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200">
-            Modo Urbano Express
-          </span>
-        </div>
-
-        <form id="trackForm" class="flex flex-col sm:flex-row gap-2.5">
-          <div class="search-input-wrapper active-urbano flex-1" id="searchInputContainer">
-            <i class="fa-solid fa-magnifying-glass search-prefix-icon"></i>
-            <input 
-              type="text" 
-              id="orderInput" maxlength="120" aria-describedby="errorMessage"
-              placeholder="Ingresá tu código, ej: 2745296ICBC" 
-              required
-              autocomplete="off"
-              spellcheck="false"
-              class="search-input-field"
+        <!-- Controles de Encabezado: Selector de Empresa y Cuenta -->
+        <div class="flex items-center gap-2 sm:gap-2.5">
+          <!-- Segmented Carrier Control -->
+          <div
+            class="carrier-segmented-switch"
+            role="group"
+            aria-label="Selección de empresa de correo"
+          >
+            <button
+              id="carrierUrbanoBtn"
+              aria-pressed="true"
+              type="button"
+              class="carrier-pill-btn active is-urbano"
+              title="Consultar envíos en Urbano Express"
             >
-            
-            <!-- Controles inline de la barra (Limpiar + Pegar) -->
-            <div class="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5 z-10">
-              <!-- Botón limpiar -->
-              <button 
-                type="button" 
-                id="clearInputBtn" 
-                class="hidden text-slate-400 hover:text-slate-700 p-1 rounded-md hover:bg-slate-100 transition focus:outline-none cursor-pointer"
-                title="Borrar texto"
-              >
-                <i class="fa-solid fa-circle-xmark text-sm"></i>
-              </button>
+              <span class="carrier-dot"></span>
+              <span>Urbano</span>
+            </button>
 
-              <!-- Botón Pegar inline -->
-              <button 
-                type="button" 
-                id="pasteBtn" 
-                class="px-2.5 py-1 text-xs font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-md transition flex items-center gap-1.5 cursor-pointer shrink-0"
-                title="Pegar código del portapapeles"
-              >
-                <i class="fa-regular fa-clipboard text-[11px]"></i>
-                <span class="hidden sm:inline">Pegar</span>
-              </button>
-            </div>
+            <button
+              id="carrierAndreaniBtn"
+              aria-pressed="false"
+              type="button"
+              class="carrier-pill-btn is-andreani"
+              title="Consultar envíos en Correo Andreani"
+            >
+              <span class="carrier-dot"></span>
+              <span>Andreani</span>
+            </button>
+
+            <button
+              id="carrierEntregarBtn"
+              aria-pressed="false"
+              type="button"
+              class="carrier-pill-btn is-entregar"
+              title="Consultar envíos en Entregar"
+            >
+              <span class="carrier-dot"></span>
+              <span>Entregar</span>
+            </button>
           </div>
 
-          <!-- Botón de consulta -->
-          <button 
-            type="submit" 
-            id="submitBtn"
-            class="btn-primary-urbano h-[46px] px-6"
+          <!-- Cuenta Despacho Fija (Urbano) -->
+          <div
+            id="shipperBadgeContainer"
+            class="hidden md:inline-flex items-center gap-1.5 text-xs text-slate-600 bg-slate-50 border border-slate-200 px-2.5 py-1.5 rounded-lg select-none"
+            title="Cuenta consolidada de despacho BGH (fija y no modificable)"
           >
-            <i class="fa-solid fa-arrow-right text-xs"></i>
-            <span>Consultar</span>
+            <i class="fa-solid fa-lock text-[10px] text-slate-400"></i>
+            <span class="text-slate-500 font-medium">Cuenta:</span>
+            <strong class="font-mono-code text-slate-900 font-bold">004185</strong>
+          </div>
+
+          <!-- Botón de Sesión Entregar -->
+          <button
+            id="entregarSessionBtn"
+            type="button"
+            class="hidden text-xs text-slate-600 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 px-2.5 py-1.5 rounded-lg transition items-center gap-1.5 cursor-pointer"
+            title="Verificar o renovar cookie de sesión en Entregar"
+          >
+            <i class="fa-solid fa-key text-[10px] text-emerald-600"></i>
+            <span class="hidden sm:inline">Sesión</span>
           </button>
-        </form>
 
-        <div class="mt-2.5 flex items-center justify-between text-xs text-slate-400">
-          <span class="hidden sm:inline">Presioná <span class="kbd-shortcut">↵ Enter</span> para buscar</span>
-          <span id="carrierTipText" class="text-slate-500 font-medium ml-auto">
-            Detección automática de códigos Mercado Libre / Andreani
-          </span>
+          <!-- Botón Presentación / Arquitectura Técnica -->
+          <button
+            id="architectureBtn"
+            type="button"
+            class="text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 px-2.5 py-1.5 rounded-lg transition inline-flex items-center gap-1.5 cursor-pointer shadow-sm"
+            title="Cómo funciona el seguimiento"
+          >
+            <i class="fa-solid fa-circle-question text-blue-600 text-xs"></i>
+            <span class="hidden sm:inline font-semibold">¿Cómo funciona?</span>
+          </button>
         </div>
       </div>
+    </header>
 
-      <!-- Estado: Cargando -->
-      <div id="loadingBox" class="hidden card-clean p-8 text-center text-sm text-slate-600">
-        <i class="fa-solid fa-circle-notch animate-spin text-slate-800 text-2xl mb-3"></i>
-        <p id="loadingText" class="font-medium text-slate-700">Consultando estado...</p>
+    <!-- Contenedor Principal -->
+    <main class="max-w-5xl w-full mx-auto px-4 sm:px-6 py-8 flex-1 space-y-6">
+      <!-- Pestañas de Modo (Individual vs Masivo) -->
+      <div class="flex border-b border-slate-200">
+        <button id="tabSingle" aria-pressed="true" class="nav-tab-clean active">
+          <i class="fa-solid fa-magnifying-glass text-xs"></i>
+          <span>Buscar un pedido</span>
+        </button>
+        <button id="tabBatch" aria-pressed="false" class="nav-tab-clean">
+          <i class="fa-solid fa-layer-group text-xs"></i>
+          <span>Consulta por lote</span>
+        </button>
       </div>
 
-      <!-- Estado: Error / No encontrado -->
-      <div id="errorBox" class="hidden card-clean p-6 border-red-200 bg-red-50/40">
-        <div class="flex items-start gap-3.5">
-          <div class="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center text-red-600 shrink-0">
-            <i class="fa-solid fa-circle-exclamation text-sm"></i>
-          </div>
-          <div class="flex-1">
-            <h4 class="text-sm font-bold text-slate-900">No se encontraron datos del envío</h4>
-            <p id="errorMessage" class="text-xs text-slate-600 mt-1 leading-relaxed"></p>
-            <div class="mt-3.5 flex items-center gap-3 flex-wrap">
-              <a id="errorOfficialLink" href="#" target="_blank" rel="noopener noreferrer" class="text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline inline-flex items-center gap-1.5">
-                <span>Abrir consulta en el portal oficial</span>
-                <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
-              </a>
-            </div>
-
-            <!-- Sugerencias para buscar en otros transportistas (ej: cambios en Entregar) -->
-            <div id="errorCrossCarrierSuggestions" class="mt-4 pt-3.5 border-t border-red-200/80 flex items-center gap-2 flex-wrap text-xs">
-              <span class="text-slate-600 font-medium">¿Querés probar en otro correo?</span>
-              <button type="button" id="errorTryEntregarBtn" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs inline-flex items-center gap-1.5 transition cursor-pointer shadow-xs">
-                <i class="fa-solid fa-arrows-rotate text-[10px]"></i>
-                <span>Buscar cambio en Entregar</span>
-              </button>
-              <button type="button" id="errorTryAndreaniBtn" class="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs inline-flex items-center gap-1.5 transition cursor-pointer shadow-xs">
-                <span>Buscar en Andreani</span>
-              </button>
-              <button type="button" id="errorTryUrbanoBtn" class="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-semibold text-xs inline-flex items-center gap-1.5 transition cursor-pointer shadow-xs">
-                <span>Buscar en Urbano</span>
-              </button>
-            </div>
-
-          </div>
-        </div>
-      </div>
-
-      <!-- ====================================================================
-           RESULTADO DEL SEGUIMIENTO (URBANO, ANDREANI Y ENTREGAR)
-           ==================================================================== -->
-      <div id="resultBox" class="hidden space-y-6">
-
-        <!-- Selector de Sub-Envíos (múltiples tramos como Despacho y Retiro en Entregar) -->
-        <div id="subOrdersContainer" class="hidden card-clean p-4 bg-slate-50/80 space-y-2.5 border-slate-200">
-          <div class="flex items-center justify-between text-xs text-slate-700 font-bold">
-            <span class="flex items-center gap-1.5">
-              <i class="fa-solid fa-boxes-stacked text-emerald-600"></i>
-              <span>Envíos vinculados a esta orden (<span id="subOrdersCount">0</span>):</span>
+      <!-- Ayuda del seguimiento -->
+      <div id="singleSearchView" class="space-y-6">
+        <!-- Caja Principal de Búsqueda -->
+        <div class="card-clean p-5 sm:p-6">
+          <div class="flex items-center justify-between mb-2.5">
+            <label
+              for="orderInput"
+              id="searchLabel"
+              class="block text-xs sm:text-sm font-bold text-slate-900"
+            >
+              Número de pedido o código de compra (Urbano):
+            </label>
+            <span
+              id="carrierIndicatorTag"
+              class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200"
+            >
+              Modo Urbano Express
             </span>
-            <span class="text-[11px] text-slate-400 font-normal">Hacé clic en un tramo para ver su historial</span>
           </div>
-          <div id="subOrdersList" class="suborders-bar">
-            <!-- Píldoras dinámicas generadas con JS -->
+
+          <form id="trackForm" class="flex flex-col sm:flex-row gap-2.5">
+            <div class="search-input-wrapper active-urbano flex-1" id="searchInputContainer">
+              <i class="fa-solid fa-magnifying-glass search-prefix-icon"></i>
+              <input
+                type="text"
+                id="orderInput"
+                maxlength="120"
+                aria-describedby="errorMessage"
+                placeholder="Ingresá tu código, ej: PEDIDO-EJEMPLO"
+                required
+                autocomplete="off"
+                spellcheck="false"
+                class="search-input-field"
+              />
+
+              <!-- Controles inline de la barra (Limpiar + Pegar) -->
+              <div
+                class="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5 z-10"
+              >
+                <!-- Botón limpiar -->
+                <button
+                  type="button"
+                  id="clearInputBtn"
+                  class="hidden text-slate-400 hover:text-slate-700 p-1 rounded-md hover:bg-slate-100 transition focus:outline-none cursor-pointer"
+                  title="Borrar texto"
+                >
+                  <i class="fa-solid fa-circle-xmark text-sm"></i>
+                </button>
+
+                <!-- Botón Pegar inline -->
+                <button
+                  type="button"
+                  id="pasteBtn"
+                  class="px-2.5 py-1 text-xs font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-md transition flex items-center gap-1.5 cursor-pointer shrink-0"
+                  title="Pegar código del portapapeles"
+                >
+                  <i class="fa-regular fa-clipboard text-[11px]"></i>
+                  <span class="hidden sm:inline">Pegar</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Botón de consulta -->
+            <button type="submit" id="submitBtn" class="btn-primary-urbano h-[46px] px-6">
+              <i class="fa-solid fa-arrow-right text-xs"></i>
+              <span>Consultar</span>
+            </button>
+          </form>
+
+          <div class="mt-2.5 flex items-center justify-between text-xs text-slate-400">
+            <span class="hidden sm:inline"
+              >Presioná <span class="kbd-shortcut">↵ Enter</span> para buscar</span
+            >
+            <span id="carrierTipText" class="text-slate-500 font-medium ml-auto">
+              Detección automática de códigos Mercado Libre / Andreani
+            </span>
           </div>
         </div>
 
-        <!-- Tarjeta Principal del Paquete -->
-        <div class="card-clean overflow-hidden">
-          
-          <!-- Franja Superior de Estado -->
-          <div id="statusBanner" class="p-4 sm:p-5 bg-emerald-50/70 border-b border-emerald-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            
-            <div class="space-y-1">
-              <div class="flex items-center gap-2">
-                <span id="resultCarrierTag" class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-white border border-slate-200 text-slate-700">
-                  Urbano Express
-                </span>
-                <span class="text-xs text-slate-500 font-medium">Estado actual</span>
-              </div>
-              
-              <div class="flex items-center gap-3">
-                <div class="flex items-center gap-2">
-                  <span id="statusIndicatorDot" class="pulse-indicator text-emerald-600">
-                    <span class="ring"></span>
-                    <span class="dot"></span>
-                  </span>
-                  <span id="statusLabelText" class="text-lg sm:text-xl font-extrabold text-emerald-950">
-                    Entregado
-                  </span>
-                </div>
-                <span id="statusDateBadge" class="text-xs text-slate-600 font-mono-code font-medium"></span>
-              </div>
-            </div>
-
-            <!-- Acciones Principales del Envío -->
-            <div class="flex items-center gap-2.5 flex-wrap">
-              <!-- Botón cruzado: Buscar cambio en Entregar o viceversa -->
-              <button 
-                id="crossCarrierBtn" 
-                type="button" 
-                class="btn-secondary"
-                title="Consultar si tiene cambio o despacho en otro correo"
-              >
-                <i id="crossCarrierBtnIcon" class="fa-solid fa-arrows-rotate text-xs text-emerald-600"></i>
-                <span id="crossCarrierBtnText">Buscar en Entregar</span>
-              </button>
-
-              <button 
-                id="copySummaryBtn" 
-                type="button" 
-                class="btn-secondary"
-                title="Copiar resumen para WhatsApp o correo"
-              >
-                <i class="fa-regular fa-copy text-xs"></i>
-                <span id="copySummaryText">Copiar Ficha</span>
-              </button>
-
-              <a 
-                id="officialLinkBtn" 
-                href="#" 
-                target="_blank" rel="noopener noreferrer"
-                class="btn-primary-urbano px-4 py-2 text-xs"
-              >
-                <span id="officialLinkText">Ver en Web Oficial</span>
-                <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
-              </a>
-            </div>
-
-          </div>
-
-          <!-- Banner Operativo Entregar (Clasificación BGH: ZECO, ZECH, ZRE7, ZRE2) -->
-          <div id="entregarOperationalBanner" class="hidden px-5 py-3.5 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs transition-all">
-            <div class="flex items-start sm:items-center gap-3">
-              <div id="operationalIconBox" class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-base shadow-xs">
-                <!-- Icono dinámico según clasificación -->
-              </div>
-              <div class="space-y-0.5">
-                <div class="flex items-center gap-2 flex-wrap">
-                  <span id="operationalTitle" class="font-bold text-slate-900">--</span>
-                  <span id="operationalCodeBadge" class="font-mono-code font-bold px-2 py-0.5 rounded text-[11px]">--</span>
-                  <span id="operationalAuxBadge" class="hidden font-mono-code text-[11px] text-slate-600 bg-slate-100 px-2 py-0.5 rounded"></span>
-                </div>
-                <p id="operationalDescription" class="text-slate-600 text-xs leading-relaxed">--</p>
-              </div>
-            </div>
-
-            <!-- Llamado a la acción para tramos vinculados de cambio -->
-            <div id="operationalLinkedAction" class="hidden shrink-0 flex items-center gap-2 pt-2 md:pt-0 border-t md:border-t-0 border-slate-200/60">
-              <span class="text-slate-500 text-[11px]">Vinculado a:</span>
-              <button 
-                type="button" 
-                id="goToLinkedLegBtn" 
-                class="btn-linked-leg"
-              >
-                <span id="goToLinkedLegText">Ver tramo</span>
-                <i class="fa-solid fa-arrow-right text-[10px]"></i>
-              </button>
-            </div>
-          </div>
-
-          <!-- Bento Grid de Metadatos Clave -->
-          <div class="p-5 sm:p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 text-xs border-b border-slate-100">
-            
-            <!-- Referencia de Envío -->
-            <div class="bg-slate-50/80 p-3.5 rounded-xl border border-slate-100 flex flex-col justify-start gap-1.5 min-w-0">
-              <div class="flex items-center justify-between text-slate-400 font-medium">
-                <span>Referencia / Pedido</span>
-                <button type="button" id="copyOrderBtn" class="copy-hover-btn text-slate-400 hover:text-slate-700" title="Copiar referencia">
-                  <i class="fa-regular fa-copy text-xs"></i>
-                </button>
-              </div>
-              <span id="resultOrderTitle" class="text-sm sm:text-base font-bold text-slate-900 font-mono-code break-all whitespace-normal select-all leading-snug">--</span>
-            </div>
-
-            <!-- Guía Oficial -->
-            <div class="bg-slate-50/80 p-3.5 rounded-xl border border-slate-100 flex flex-col justify-start gap-1.5 min-w-0">
-              <div class="flex items-center justify-between text-slate-400 font-medium">
-                <span>N° Guía Oficial</span>
-                <button type="button" id="copyGuiaBtn" class="copy-hover-btn text-slate-400 hover:text-slate-700" title="Copiar guía oficial">
-                  <i class="fa-regular fa-copy text-xs"></i>
-                </button>
-              </div>
-              <span id="metaGuia" class="text-sm sm:text-base font-bold text-slate-900 font-mono-code break-all whitespace-normal select-all leading-snug">--</span>
-            </div>
-
-            <!-- Remitente / Tienda -->
-            <div class="bg-slate-50/80 p-3.5 rounded-xl border border-slate-100 flex flex-col justify-start gap-1.5 min-w-0">
-              <span class="text-slate-400 font-medium">Remitente</span>
-              <span id="metaRemitente" class="text-xs sm:text-sm font-semibold text-slate-800 break-words whitespace-normal leading-snug">--</span>
-            </div>
-
-            <!-- Destino / Servicio -->
-            <div class="bg-slate-50/80 p-3.5 rounded-xl border border-slate-100 flex flex-col justify-start gap-1.5 min-w-0">
-              <span class="text-slate-400 font-medium">Destino / Servicio</span>
-              <div class="flex flex-col gap-0.5">
-                <div id="metaDestino" class="text-xs sm:text-sm font-semibold text-slate-800 break-words whitespace-normal leading-snug">--</div>
-                <div id="metaServicio" class="text-[11px] text-slate-500 break-words whitespace-normal leading-normal mt-0.5">--</div>
-              </div>
-            </div>
-
-          </div>
-
-          <!-- ================================================================
-               DETALLE DE PRODUCTOS Y BULTOS (Filas hacia abajo indicando cantidad de cada 1)
-               ================================================================ -->
-          <div id="productsSection" class="border-t border-slate-100 bg-slate-50/50 p-4 sm:p-5 space-y-3">
-            <div class="flex items-center justify-between flex-wrap gap-2">
-              <div class="flex items-center gap-2">
-                <div class="w-6 h-6 rounded-md bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs shrink-0">
-                  <i class="fa-solid fa-boxes-packing"></i>
-                </div>
-                <div>
-                  <h4 class="text-xs sm:text-sm font-bold text-slate-900 leading-tight">Productos en este envío</h4>
-                  <p class="text-[11px] text-slate-500">Cantidad y código de cada bulto registrado</p>
-                </div>
-              </div>
-
-              <div class="flex items-center gap-2">
-                <span id="productsCountBadge" class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
-                  0 productos
-                </span>
-                <span id="bultosCountBadge" class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
-                  0 bultos totales
-                </span>
-              </div>
-            </div>
-
-            <!-- Filas de cada producto hacia abajo -->
-            <div id="productsListContainer" class="space-y-2">
-              <!-- Renderizado dinámico con JS -->
-            </div>
-          </div>
-
-          <!-- Pie informativo de la ficha -->
-          <div class="px-5 py-3 bg-slate-50/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs text-slate-400 border-t border-slate-100">
-            <span id="metaCiclo" class="font-mono-code text-[11px] text-slate-500"></span>
-            <span class="text-[11px] text-slate-400 font-medium">Información sincronizada en tiempo real</span>
-          </div>
-
+        <!-- Estado: Cargando -->
+        <div id="loadingBox" class="hidden card-clean p-8 text-center text-sm text-slate-600">
+          <i class="fa-solid fa-circle-notch animate-spin text-slate-800 text-2xl mb-3"></i>
+          <p id="loadingText" class="font-medium text-slate-700">Consultando estado...</p>
         </div>
 
-        <!-- ================================================================
-             HISTORIAL DE MOVIMIENTOS CON ALTERNANCIA TIMELINE / TABLA
-             ================================================================ -->
-        <div class="card-clean overflow-hidden">
-          
-          <div class="px-5 py-3.5 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
-            <div class="flex items-center gap-2.5">
-              <h3 class="text-sm font-bold text-slate-900">Historial de movimientos</h3>
-              <span id="movementsCountBadge" class="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-200 text-slate-700">
-                0 eventos
+        <!-- Estado: Error / No encontrado -->
+        <div id="errorBox" class="hidden card-clean p-6 border-red-200 bg-red-50/40">
+          <div class="flex items-start gap-3.5">
+            <div
+              class="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center text-red-600 shrink-0"
+            >
+              <i class="fa-solid fa-circle-exclamation text-sm"></i>
+            </div>
+            <div class="flex-1">
+              <h4 class="text-sm font-bold text-slate-900">No se encontraron datos del envío</h4>
+              <p id="errorMessage" class="text-xs text-slate-600 mt-1 leading-relaxed"></p>
+              <div class="mt-3.5 flex items-center gap-3 flex-wrap">
+                <a
+                  id="errorOfficialLink"
+                  href="#"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline inline-flex items-center gap-1.5"
+                >
+                  <span>Abrir consulta en el portal oficial</span>
+                  <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                </a>
+              </div>
+
+              <!-- Sugerencias para buscar en otros transportistas (ej: cambios en Entregar) -->
+              <div
+                id="errorCrossCarrierSuggestions"
+                class="mt-4 pt-3.5 border-t border-red-200/80 flex items-center gap-2 flex-wrap text-xs"
+              >
+                <span class="text-slate-600 font-medium">¿Querés probar en otro correo?</span>
+                <button
+                  type="button"
+                  id="errorTryEntregarBtn"
+                  class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs inline-flex items-center gap-1.5 transition cursor-pointer shadow-xs"
+                >
+                  <i class="fa-solid fa-arrows-rotate text-[10px]"></i>
+                  <span>Buscar cambio en Entregar</span>
+                </button>
+                <button
+                  type="button"
+                  id="errorTryAndreaniBtn"
+                  class="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs inline-flex items-center gap-1.5 transition cursor-pointer shadow-xs"
+                >
+                  <span>Buscar en Andreani</span>
+                </button>
+                <button
+                  type="button"
+                  id="errorTryUrbanoBtn"
+                  class="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-semibold text-xs inline-flex items-center gap-1.5 transition cursor-pointer shadow-xs"
+                >
+                  <span>Buscar en Urbano</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Ayuda del seguimiento -->
+        <div id="resultBox" class="hidden space-y-6">
+          <!-- Selector de Sub-Envíos (múltiples tramos como Despacho y Retiro en Entregar) -->
+          <div
+            id="subOrdersContainer"
+            class="hidden card-clean p-4 bg-slate-50/80 space-y-2.5 border-slate-200"
+          >
+            <div class="flex items-center justify-between text-xs text-slate-700 font-bold">
+              <span class="flex items-center gap-1.5">
+                <i class="fa-solid fa-boxes-stacked text-emerald-600"></i>
+                <span>Envíos vinculados a esta orden (<span id="subOrdersCount">0</span>):</span>
               </span>
+              <span class="text-[11px] text-slate-400 font-normal"
+                >Hacé clic en un tramo para ver su historial</span
+              >
             </div>
-
-            <!-- Switcher: Línea de tiempo vs Tabla -->
-            <div class="inline-flex rounded-lg border border-slate-200 p-0.5 bg-white text-xs font-semibold">
-              <button id="viewTimelineBtn" type="button" class="px-2.5 py-1 rounded-md bg-slate-100 text-slate-900 transition flex items-center gap-1.5">
-                <i class="fa-solid fa-timeline text-[10px]"></i>
-                <span class="hidden sm:inline">Línea de tiempo</span>
-              </button>
-              <button id="viewTableBtn" type="button" class="px-2.5 py-1 rounded-md text-slate-500 hover:text-slate-900 transition flex items-center gap-1.5">
-                <i class="fa-solid fa-table-list text-[10px]"></i>
-                <span class="hidden sm:inline">Tabla</span>
-              </button>
+            <div id="subOrdersList" class="suborders-bar">
+              <!-- Píldoras dinámicas generadas con JS -->
             </div>
           </div>
 
-          <!-- Vista 1: Timeline Vertical (Feed Moderno) -->
-          <div id="timelineFeedContainer" class="p-6">
-            <div id="timelineFeed" class="timeline-feed">
-              <!-- Renderizado dinámico -->
+          <!-- Tarjeta Principal del Paquete -->
+          <div class="card-clean overflow-hidden">
+            <!-- Franja Superior de Estado -->
+            <div
+              id="statusBanner"
+              class="p-4 sm:p-5 bg-emerald-50/70 border-b border-emerald-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+            >
+              <div class="space-y-1">
+                <div class="flex items-center gap-2">
+                  <span
+                    id="resultCarrierTag"
+                    class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-white border border-slate-200 text-slate-700"
+                  >
+                    Urbano Express
+                  </span>
+                  <span class="text-xs text-slate-500 font-medium">Estado actual</span>
+                </div>
+
+                <div class="flex items-center gap-3">
+                  <div class="flex items-center gap-2">
+                    <span id="statusIndicatorDot" class="pulse-indicator text-emerald-600">
+                      <span class="ring"></span>
+                      <span class="dot"></span>
+                    </span>
+                    <span
+                      id="statusLabelText"
+                      class="text-lg sm:text-xl font-extrabold text-emerald-950"
+                    >
+                      Entregado
+                    </span>
+                  </div>
+                  <span
+                    id="statusDateBadge"
+                    class="text-xs text-slate-600 font-mono-code font-medium"
+                  ></span>
+                </div>
+              </div>
+
+              <!-- Acciones Principales del Envío -->
+              <div class="flex items-center gap-2.5 flex-wrap">
+                <!-- Botón cruzado: Buscar cambio en Entregar o viceversa -->
+                <button
+                  id="crossCarrierBtn"
+                  type="button"
+                  class="btn-secondary"
+                  title="Consultar si tiene cambio o despacho en otro correo"
+                >
+                  <i
+                    id="crossCarrierBtnIcon"
+                    class="fa-solid fa-arrows-rotate text-xs text-emerald-600"
+                  ></i>
+                  <span id="crossCarrierBtnText">Buscar en Entregar</span>
+                </button>
+
+                <button
+                  id="copySummaryBtn"
+                  type="button"
+                  class="btn-secondary"
+                  title="Copiar resumen para WhatsApp o correo"
+                >
+                  <i class="fa-regular fa-copy text-xs"></i>
+                  <span id="copySummaryText">Copiar Ficha</span>
+                </button>
+
+                <a
+                  id="officialLinkBtn"
+                  href="#"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="btn-primary-urbano px-4 py-2 text-xs"
+                >
+                  <span id="officialLinkText">Ver en Web Oficial</span>
+                  <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                </a>
+              </div>
+            </div>
+
+            <!-- Banner Operativo Entregar (Clasificación BGH: ZECO, ZECH, ZRE7, ZRE2) -->
+            <div
+              id="entregarOperationalBanner"
+              class="hidden px-5 py-3.5 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs transition-all"
+            >
+              <div class="flex items-start sm:items-center gap-3">
+                <div
+                  id="operationalIconBox"
+                  class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-base shadow-xs"
+                >
+                  <!-- Icono dinámico según clasificación -->
+                </div>
+                <div class="space-y-0.5">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <span id="operationalTitle" class="font-bold text-slate-900">--</span>
+                    <span
+                      id="operationalCodeBadge"
+                      class="font-mono-code font-bold px-2 py-0.5 rounded text-[11px]"
+                      >--</span
+                    >
+                    <span
+                      id="operationalAuxBadge"
+                      class="hidden font-mono-code text-[11px] text-slate-600 bg-slate-100 px-2 py-0.5 rounded"
+                    ></span>
+                  </div>
+                  <p id="operationalDescription" class="text-slate-600 text-xs leading-relaxed"
+                    >--</p
+                  >
+                </div>
+              </div>
+
+              <!-- Llamado a la acción para tramos vinculados de cambio -->
+              <div
+                id="operationalLinkedAction"
+                class="hidden shrink-0 flex items-center gap-2 pt-2 md:pt-0 border-t md:border-t-0 border-slate-200/60"
+              >
+                <span class="text-slate-500 text-[11px]">Vinculado a:</span>
+                <button type="button" id="goToLinkedLegBtn" class="btn-linked-leg">
+                  <span id="goToLinkedLegText">Ver tramo</span>
+                  <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Datos del envío -->
+            <div
+              class="p-5 sm:p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 text-xs border-b border-slate-100"
+            >
+              <!-- Referencia de Envío -->
+              <div
+                class="bg-slate-50/80 p-3.5 rounded-xl border border-slate-100 flex flex-col justify-start gap-1.5 min-w-0"
+              >
+                <div class="flex items-center justify-between text-slate-400 font-medium">
+                  <span>Referencia / Pedido</span>
+                  <button
+                    type="button"
+                    id="copyOrderBtn"
+                    class="copy-hover-btn text-slate-400 hover:text-slate-700"
+                    title="Copiar referencia"
+                  >
+                    <i class="fa-regular fa-copy text-xs"></i>
+                  </button>
+                </div>
+                <span
+                  id="resultOrderTitle"
+                  class="text-sm sm:text-base font-bold text-slate-900 font-mono-code break-all whitespace-normal select-all leading-snug"
+                  >--</span
+                >
+              </div>
+
+              <!-- Guía Oficial -->
+              <div
+                class="bg-slate-50/80 p-3.5 rounded-xl border border-slate-100 flex flex-col justify-start gap-1.5 min-w-0"
+              >
+                <div class="flex items-center justify-between text-slate-400 font-medium">
+                  <span>N° Guía Oficial</span>
+                  <button
+                    type="button"
+                    id="copyGuiaBtn"
+                    class="copy-hover-btn text-slate-400 hover:text-slate-700"
+                    title="Copiar guía oficial"
+                  >
+                    <i class="fa-regular fa-copy text-xs"></i>
+                  </button>
+                </div>
+                <span
+                  id="metaGuia"
+                  class="text-sm sm:text-base font-bold text-slate-900 font-mono-code break-all whitespace-normal select-all leading-snug"
+                  >--</span
+                >
+              </div>
+
+              <!-- Remitente / Tienda -->
+              <div
+                class="bg-slate-50/80 p-3.5 rounded-xl border border-slate-100 flex flex-col justify-start gap-1.5 min-w-0"
+              >
+                <span class="text-slate-400 font-medium">Remitente</span>
+                <span
+                  id="metaRemitente"
+                  class="text-xs sm:text-sm font-semibold text-slate-800 break-words whitespace-normal leading-snug"
+                  >--</span
+                >
+              </div>
+
+              <!-- Destino / Servicio -->
+              <div
+                class="bg-slate-50/80 p-3.5 rounded-xl border border-slate-100 flex flex-col justify-start gap-1.5 min-w-0"
+              >
+                <span class="text-slate-400 font-medium">Destino / Servicio</span>
+                <div class="flex flex-col gap-0.5">
+                  <div
+                    id="metaDestino"
+                    class="text-xs sm:text-sm font-semibold text-slate-800 break-words whitespace-normal leading-snug"
+                    >--</div
+                  >
+                  <div
+                    id="metaServicio"
+                    class="text-[11px] text-slate-500 break-words whitespace-normal leading-normal mt-0.5"
+                    >--</div
+                  >
+                </div>
+              </div>
+            </div>
+
+            <!-- Ayuda del seguimiento -->
+            <div
+              id="productsSection"
+              class="border-t border-slate-100 bg-slate-50/50 p-4 sm:p-5 space-y-3"
+            >
+              <div class="flex items-center justify-between flex-wrap gap-2">
+                <div class="flex items-center gap-2">
+                  <div
+                    class="w-6 h-6 rounded-md bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs shrink-0"
+                  >
+                    <i class="fa-solid fa-boxes-packing"></i>
+                  </div>
+                  <div>
+                    <h4 class="text-xs sm:text-sm font-bold text-slate-900 leading-tight"
+                      >Productos en este envío</h4
+                    >
+                    <p class="text-[11px] text-slate-500"
+                      >Cantidad y código de cada bulto registrado</p
+                    >
+                  </div>
+                </div>
+
+                <div class="flex items-center gap-2">
+                  <span
+                    id="productsCountBadge"
+                    class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200"
+                  >
+                    0 productos
+                  </span>
+                  <span
+                    id="bultosCountBadge"
+                    class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200"
+                  >
+                    0 bultos totales
+                  </span>
+                </div>
+              </div>
+
+              <!-- Filas de cada producto hacia abajo -->
+              <div id="productsListContainer" class="space-y-2">
+                <!-- Renderizado dinámico con JS -->
+              </div>
+            </div>
+
+            <!-- Pie informativo de la ficha -->
+            <div
+              class="px-5 py-3 bg-slate-50/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs text-slate-400 border-t border-slate-100"
+            >
+              <span id="metaCiclo" class="font-mono-code text-[11px] text-slate-500"></span>
+              <span class="text-[11px] text-slate-400 font-medium"
+                >Información recibida en la última consulta</span
+              >
             </div>
           </div>
 
-          <!-- Vista 2: Tabla de Movimientos Clásica -->
-          <div id="movementsTableContainer" class="hidden overflow-x-auto">
+          <!-- Ayuda del seguimiento -->
+          <div class="card-clean overflow-hidden">
+            <div
+              class="px-5 py-3.5 border-b border-slate-200 bg-slate-50 flex items-center justify-between"
+            >
+              <div class="flex items-center gap-2.5">
+                <h3 class="text-sm font-bold text-slate-900">Historial de movimientos</h3>
+                <span
+                  id="movementsCountBadge"
+                  class="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-200 text-slate-700"
+                >
+                  0 eventos
+                </span>
+              </div>
+
+              <!-- Switcher: Línea de tiempo vs Tabla -->
+              <div
+                class="inline-flex rounded-lg border border-slate-200 p-0.5 bg-white text-xs font-semibold"
+              >
+                <button
+                  id="viewTimelineBtn"
+                  type="button"
+                  class="px-2.5 py-1 rounded-md bg-slate-100 text-slate-900 transition flex items-center gap-1.5"
+                >
+                  <i class="fa-solid fa-timeline text-[10px]"></i>
+                  <span class="hidden sm:inline">Línea de tiempo</span>
+                </button>
+                <button
+                  id="viewTableBtn"
+                  type="button"
+                  class="px-2.5 py-1 rounded-md text-slate-500 hover:text-slate-900 transition flex items-center gap-1.5"
+                >
+                  <i class="fa-solid fa-table-list text-[10px]"></i>
+                  <span class="hidden sm:inline">Tabla</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Vista 1: Timeline Vertical (Feed Moderno) -->
+            <div id="timelineFeedContainer" class="p-6">
+              <div id="timelineFeed" class="timeline-feed">
+                <!-- Renderizado dinámico -->
+              </div>
+            </div>
+
+            <!-- Vista 2: Tabla de Movimientos Clásica -->
+            <div id="movementsTableContainer" class="hidden overflow-x-auto">
+              <table class="tracking-table">
+                <thead>
+                  <tr>
+                    <th style="width: 44px">#</th>
+                    <th style="width: 160px">Fecha y Hora</th>
+                    <th>Estado / Detalle del Envío</th>
+                    <th style="width: 220px">Sucursal / Planta</th>
+                  </tr>
+                </thead>
+                <tbody id="timelineTableBody">
+                  <!-- Se completa dinámicamente con JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Historial de Búsquedas Recientes -->
+        <div id="recentSearchesBox" class="card-clean p-4 text-xs">
+          <div class="flex items-center justify-between mb-2.5">
+            <span class="font-bold text-slate-700 flex items-center gap-1.5">
+              <i class="fa-solid fa-clock-rotate-left text-slate-400"></i>
+              <span>Historial reciente de consultas:</span>
+            </span>
+            <button
+              id="clearHistoryBtn"
+              class="text-slate-400 hover:text-red-600 transition font-medium cursor-pointer"
+            >
+              Limpiar historial
+            </button>
+          </div>
+          <div id="recentTags" class="flex flex-wrap gap-2">
+            <span class="text-slate-400 italic">No hay pedidos recientes en este dispositivo.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Ayuda del seguimiento -->
+      <div id="batchSearchView" class="hidden space-y-6">
+        <div class="card-clean p-6">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-sm font-bold text-slate-900">Consulta masiva de pedidos por lote</h3>
+            <span class="text-xs text-slate-400">Hasta 20 códigos por consulta</span>
+          </div>
+          <p class="text-xs text-slate-500 mb-4 leading-relaxed">
+            Pegá los números de pedido o guías (uno por línea o separados por comas). Elegí
+            detección automática o un transportista para todo el lote.
+          </p>
+
+          <label for="batchCarrier" class="block text-xs font-bold mb-1"
+            >Transportista del lote</label
+          >
+          <select id="batchCarrier" class="border border-slate-300 rounded-lg p-2 text-sm mb-3">
+            <option value="auto">Detectar cada código automáticamente</option>
+            <option value="urbano">Todos por Urbano</option>
+            <option value="andreani">Todos por Andreani</option>
+            <option value="entregar">Todos por Entregar</option>
+          </select>
+          <label for="batchTextarea" class="block text-xs font-bold mb-1"
+            >Códigos de pedidos o guías</label
+          >
+          <p id="batchHelp" class="text-xs text-slate-600 mb-2"
+            >Hasta 20 códigos por lote. No se descartarán pedidos sin avisarte.</p
+          >
+          <textarea
+            id="batchTextarea"
+            aria-describedby="batchHelp"
+            rows="6"
+            placeholder="PEDIDO-EJEMPLO&#10;2000000000000000&#10;0000000000000-01"
+            class="w-full p-3.5 border border-slate-300 rounded-xl font-mono-code text-xs text-slate-900 focus:border-slate-800 focus:ring-1 focus:ring-slate-800 outline-none transition"
+          ></textarea>
+
+          <div class="mt-3.5 flex items-center justify-between">
+            <button
+              type="button"
+              id="batchClearBtn"
+              class="text-xs text-slate-400 hover:text-slate-700 transition"
+            >
+              Limpiar lista
+            </button>
+
+            <button id="batchSubmitBtn" class="btn-primary-urbano px-5 py-2.5 text-xs">
+              <i class="fa-solid fa-play text-[10px]"></i>
+              <span>Consultar lote de pedidos</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Tabla de Resultados Masivos -->
+        <div id="batchResultsBox" class="hidden card-clean overflow-hidden">
+          <div
+            class="px-5 py-3.5 border-b border-slate-200 bg-slate-50 flex items-center justify-between text-xs"
+          >
+            <span class="font-bold text-slate-800">Resultados del lote</span>
+            <span id="batchSummaryStats" class="font-mono-code text-slate-500"></span>
+          </div>
+
+          <div class="overflow-x-auto">
             <table class="tracking-table">
               <thead>
                 <tr>
-                  <th style="width: 44px;">#</th>
-                  <th style="width: 160px;">Fecha y Hora</th>
-                  <th>Estado / Detalle del Envío</th>
-                  <th style="width: 220px;">Sucursal / Planta</th>
+                  <th>Código / Pedido</th>
+                  <th>Courier</th>
+                  <th>Guía Oficial</th>
+                  <th>Estado Actual</th>
+                  <th>Última Actualización</th>
+                  <th style="text-align: right">Acceso Oficial</th>
                 </tr>
               </thead>
-              <tbody id="timelineTableBody">
-                <!-- Se completa dinámicamente con JS -->
+              <tbody id="batchTableBody">
+                <!-- JS -->
               </tbody>
             </table>
           </div>
+        </div>
+      </div>
+    </main>
 
+    <!-- Notificación Toast Flotante -->
+    <div id="toastNotification" class="toast-notification">
+      <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400"></i>
+      <span id="toastMessage">Texto copiado al portapapeles</span>
+    </div>
+
+    <!-- Modal para Configurar o Renovar Sesión de Entregar -->
+    <div
+      id="sessionModal"
+      class="modal-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Sesión de Entregar"
+      aria-hidden="true"
+      tabindex="-1"
+    >
+      <div class="modal-card p-6">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+          <div class="flex items-center gap-2.5">
+            <div
+              class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center"
+            >
+              <i class="fa-solid fa-key text-xs"></i>
+            </div>
+            <div>
+              <h4 class="text-sm font-bold text-slate-900">Sesión de Entregar</h4>
+              <p class="text-[11px] text-slate-400">Administrador de cookie activa</p>
+            </div>
+          </div>
+          <button
+            id="closeSessionModalBtn"
+            aria-label="Cerrar diálogo"
+            type="button"
+            class="text-slate-400 hover:text-slate-600 p-1"
+          >
+            <i class="fa-solid fa-xmark text-sm"></i>
+          </button>
         </div>
 
-      </div>
+        <div class="mt-4 space-y-3 text-xs text-slate-600">
+          <p class="leading-relaxed">
+            Para consultar la plataforma <strong>svr.entregar.net.ar</strong>, se utiliza la cookie
+            de sesión activa. El servidor comprueba periódicamente su vigencia; el proveedor puede
+            exigir una renovación.
+          </p>
+          <div>
+            <label for="sessionCookieInput" class="block font-bold text-slate-800 mb-1"
+              >Cookie de sesión (PHPSESSID / PHPSESSID_):</label
+            >
+            <textarea
+              id="sessionCookieInput"
+              rows="3"
+              class="w-full p-2.5 border border-slate-300 rounded-lg font-mono-code text-[11px] text-slate-800 focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-none transition"
+              placeholder="Pegá aquí la cookie de svr.entregar.net.ar..."
+            ></textarea>
+          </div>
+          <div id="sessionStatusMsg" class="hidden p-2.5 rounded-lg text-xs font-medium"></div>
+        </div>
 
-      <!-- Historial de Búsquedas Recientes -->
-      <div id="recentSearchesBox" class="card-clean p-4 text-xs">
-        <div class="flex items-center justify-between mb-2.5">
-          <span class="font-bold text-slate-700 flex items-center gap-1.5">
-            <i class="fa-solid fa-clock-rotate-left text-slate-400"></i>
-            <span>Historial reciente de consultas:</span>
+        <div class="mt-5 flex items-center justify-end gap-2.5">
+          <button id="cancelSessionModalBtn" type="button" class="btn-secondary px-3 py-1.5 text-xs"
+            >Cerrar</button
+          >
+          <button
+            id="saveSessionCookieBtn"
+            type="button"
+            class="btn-primary-entregar px-4 py-1.5 text-xs"
+          >
+            <span>Guardar y Verificar</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ayuda del seguimiento -->
+    <div
+      id="architectureModal"
+      class="modal-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Cómo funciona el seguimiento"
+      aria-hidden="true"
+      tabindex="-1"
+    >
+      <div class="modal-card modal-card-lg p-5 sm:p-7">
+        <!-- Cabecera del Modal -->
+        <div class="flex items-center justify-between pb-4 border-b border-slate-100 shrink-0">
+          <div class="flex items-center gap-3">
+            <div
+              class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-base shadow-sm"
+            >
+              <i class="fa-solid fa-layer-group"></i>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <h3 class="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
+                  SEGUIMIENTO BGH
+                </h3>
+                <span
+                  class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200"
+                >
+                  Cómo funciona
+                </span>
+              </div>
+              <p class="text-xs text-slate-500">Origen de los datos y alcance de cada consulta</p>
+            </div>
+          </div>
+          <button
+            id="closeArchitectureModalBtn"
+            aria-label="Cerrar diálogo"
+            type="button"
+            class="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-100 transition cursor-pointer"
+          >
+            <i class="fa-solid fa-xmark text-base"></i>
+          </button>
+        </div>
+
+        <!-- Contenido Scrollable con Información Completa -->
+        <div class="modal-body-scroll mt-4 space-y-6 pr-1 text-slate-700 text-xs sm:text-sm">
+          <!-- Bloque 1: Resumen Operativo BGH -->
+          <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 sm:p-5">
+            <div class="flex items-center gap-2 mb-2 font-bold text-slate-900 text-sm">
+              <i class="fa-solid fa-building text-slate-700"></i>
+              <span>Seguimiento de envíos y cambios</span>
+            </div>
+            <p class="text-slate-600 leading-relaxed text-xs">
+              El portal reúne consultas de Urbano, Andreani y Entregar. La ficha muestra la guía, el
+              estado y los movimientos que informa cada transportista. En Entregar también
+              interpreta referencias de cambios y devoluciones.
+            </p>
+          </div>
+
+          <!-- Bloque 2: ¿Cómo rastreamos en cada Courier? -->
+          <div class="space-y-3">
+            <h4
+              class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2"
+            >
+              <i class="fa-solid fa-truck-fast text-slate-500"></i>
+              <span>Consulta por transportista</span>
+            </h4>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+              <!-- Card Courier: Urbano -->
+              <div
+                class="p-4 rounded-xl border border-red-200 bg-red-50/20 flex flex-col justify-between"
+              >
+                <div>
+                  <div class="flex items-center justify-between mb-2">
+                    <span class="font-bold text-slate-900 text-sm flex items-center gap-1.5">
+                      <span class="w-2.5 h-2.5 rounded-full bg-red-600 inline-block"></span>
+                      Urbano Express
+                    </span>
+                    <span
+                      class="text-[10px] font-semibold text-red-700 bg-red-100/60 px-1.5 py-0.5 rounded border border-red-200"
+                      >Portal BGH</span
+                    >
+                  </div>
+                  <div class="space-y-2 text-[11px] text-slate-600 leading-relaxed">
+                    <p>
+                      <strong>Cuenta de despacho:</strong> Opera con la cuenta consolidada BGH
+                      <code
+                        class="font-mono bg-white px-1 py-0.5 rounded border border-slate-200 font-bold text-slate-800"
+                        >004185</code
+                      >.
+                    </p>
+                    <p>
+                      <strong>Consulta del envío:</strong> Obtiene el resumen del portal de Urbano y
+                      solicita el detalle al controlador
+                      <code class="text-[10px] bg-white px-1 rounded border border-slate-200"
+                        >especifica_controller.php</code
+                      >.
+                    </p>
+                    <p>
+                      <strong>Datos disponibles:</strong> Guía, estado, fecha y movimientos
+                      incluidos en la respuesta. Si falla la consulta del detalle, puede quedar
+                      disponible solo el resumen.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Card Courier: Andreani -->
+              <div
+                class="p-4 rounded-xl border border-blue-200 bg-blue-50/20 flex flex-col justify-between"
+              >
+                <div>
+                  <div class="flex items-center justify-between mb-2">
+                    <span class="font-bold text-slate-900 text-sm flex items-center gap-1.5">
+                      <span class="w-2.5 h-2.5 rounded-full bg-blue-600 inline-block"></span>
+                      Correo Andreani
+                    </span>
+                    <span
+                      class="text-[10px] font-semibold text-blue-700 bg-blue-100/60 px-1.5 py-0.5 rounded border border-blue-200"
+                      >API AES-256</span
+                    >
+                  </div>
+                  <div class="space-y-2 text-[11px] text-slate-600 leading-relaxed">
+                    <p>
+                      <strong>Consulta a la API:</strong> Envía el código a
+                      <code class="text-[10px] bg-white px-1 rounded border border-slate-200"
+                        >tracking-api.andreani.com</code
+                      >
+                      y lee su respuesta JSON.
+                    </p>
+                    <p>
+                      <strong>Formato de la consulta:</strong> Cifra la solicitud con
+                      <strong>AES-256-CBC</strong> y la configuración privada del servidor. La
+                      conexión utiliza HTTPS.
+                    </p>
+                    <p>
+                      <strong>Identificador de búsqueda:</strong> Envía el código ingresado al
+                      proveedor. La aceptación de una referencia de compra depende de la API. La
+                      aplicación no realiza una conversión separada a número de guía.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Card Courier: Entregar -->
+              <div
+                class="p-4 rounded-xl border border-emerald-200 bg-emerald-50/20 flex flex-col justify-between"
+              >
+                <div>
+                  <div class="flex items-center justify-between mb-2">
+                    <span class="font-bold text-slate-900 text-sm flex items-center gap-1.5">
+                      <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block"></span>
+                      Entregar (BGH)
+                    </span>
+                    <span
+                      class="text-[10px] font-semibold text-emerald-700 bg-emerald-100/60 px-1.5 py-0.5 rounded border border-emerald-200"
+                      >Sesión activa</span
+                    >
+                  </div>
+                  <div class="space-y-2 text-[11px] text-slate-600 leading-relaxed">
+                    <p>
+                      <strong>Acceso al portal:</strong> Consulta la grilla de pedidos de Scriptcase
+                      en
+                      <code class="text-[10px] bg-white px-1 rounded border border-slate-200"
+                        >svr.entregar.net.ar</code
+                      >
+                      con una cookie de sesión vigente.
+                    </p>
+                    <p>
+                      <strong>Verificación de sesión:</strong> Comprueba la sesión cada diez
+                      minutos. El proveedor puede exigir una renovación aunque la comprobación
+                      periódica esté activa.
+                    </p>
+                    <p>
+                      <strong>Detalle de productos:</strong> Lee las tablas de productos incluidas
+                      en la respuesta HTML. La disponibilidad del detalle depende del portal y la
+                      cantidad de producto no confirma por sí sola los bultos físicos.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bloque 3: Lógica Operativa de Cambios y Referencias en Entregar -->
+          <div class="card-clean p-4 sm:p-5 border-emerald-200 bg-emerald-50/15 space-y-3">
+            <div class="flex items-center gap-2 font-bold text-slate-900 text-sm">
+              <i class="fa-solid fa-arrows-spin text-emerald-600"></i>
+              <span>Cambios y devoluciones en Entregar</span>
+            </div>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              En el sistema de Entregar, cada movimiento logístico se categoriza mediante prefijos
+              de referencia específicos:
+            </p>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+              <div class="p-2.5 bg-white rounded-lg border border-slate-200">
+                <span
+                  class="font-mono font-bold text-slate-900 text-xs px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 mr-1.5"
+                  >ZECO</span
+                >
+                <strong>Entrega Original:</strong> Envío de la compra realizada por primera vez
+                hacia el domicilio del cliente.
+              </div>
+
+              <div class="p-2.5 bg-white rounded-lg border border-slate-200">
+                <span
+                  class="font-mono font-bold text-amber-700 text-xs px-1.5 py-0.5 rounded bg-amber-50 border border-amber-200 mr-1.5"
+                  >ZRE2</span
+                >
+                <strong>Retiro Simple:</strong> Recolección del producto por devolución o
+                desistimiento de compra (sin reemplazo).
+              </div>
+
+              <div
+                class="p-2.5 bg-white rounded-lg border border-emerald-300 sm:col-span-2 bg-emerald-50/40"
+              >
+                <div class="flex items-center gap-2 mb-1">
+                  <span
+                    class="font-mono font-bold text-blue-700 text-xs px-1.5 py-0.5 rounded bg-blue-50 border border-blue-200"
+                    >ZECH</span
+                  >
+                  <i class="fa-solid fa-arrow-right-arrow-left text-[10px] text-slate-400"></i>
+                  <span
+                    class="font-mono font-bold text-emerald-700 text-xs px-1.5 py-0.5 rounded bg-emerald-50 border border-emerald-200"
+                    >ZRE7</span
+                  >
+                  <span class="font-bold text-slate-900 text-xs"
+                    >Despacho y retiro por cambio:</span
+                  >
+                </div>
+                <p class="text-[11px] text-slate-600 leading-relaxed">
+                  La aplicación interpreta <strong class="text-blue-800">ZECH</strong> como despacho
+                  por cambio y <strong class="text-emerald-800">ZRE7</strong> como retiro por
+                  cambio. Vincula ambos tramos cuando el campo auxiliar 2 contiene una referencia
+                  exacta y no hay contradicciones ni candidatos ambiguos.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bloque 4: Stack Tecnológico y Arquitectura de Software -->
+          <div class="space-y-3">
+            <h4
+              class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2"
+            >
+              <i class="fa-solid fa-microchip text-slate-500"></i>
+              <span>Implementación</span>
+            </h4>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
+                <div class="font-bold text-slate-900 flex items-center gap-2">
+                  <i class="fa-brands fa-node-js text-emerald-600 text-base"></i>
+                  <span>Servidor Node.js</span>
+                </div>
+                <p class="text-slate-600 text-[11px] leading-relaxed">
+                  El servidor utiliza módulos nativos de Node.js. Tailwind CSS y Font Awesome son
+                  dependencias de desarrollo para generar los archivos estáticos que recibe el
+                  navegador.
+                </p>
+              </div>
+
+              <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
+                <div class="font-bold text-slate-900 flex items-center gap-2">
+                  <i class="fa-solid fa-shield-halved text-blue-600 text-base"></i>
+                  <span>Comunicación con Andreani</span>
+                </div>
+                <p class="text-slate-600 text-[11px] leading-relaxed">
+                  La solicitud de Andreani usa <strong>AES-256-CBC</strong>. El servidor mantiene
+                  los accesos en configuración privada y aplica límites de tiempo a las consultas
+                  HTTPS.
+                </p>
+              </div>
+
+              <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
+                <div class="font-bold text-slate-900 flex items-center gap-2">
+                  <i class="fa-solid fa-code text-indigo-600 text-base"></i>
+                  <span>Interfaz web</span>
+                </div>
+                <p class="text-slate-600 text-[11px] leading-relaxed">
+                  La interfaz usa HTML, CSS y JavaScript. Muestra los resultados sin recargar la
+                  página y guarda las búsquedas recientes en el navegador del usuario.
+                </p>
+              </div>
+
+              <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
+                <div class="font-bold text-slate-900 flex items-center gap-2">
+                  <i class="fa-solid fa-shuffle text-purple-600 text-base"></i>
+                  <span>Consulta en otro transportista</span>
+                </div>
+                <p class="text-slate-600 text-[11px] leading-relaxed">
+                  Permite consultar la misma referencia en otro transportista desde la ficha o desde
+                  un mensaje de error. La selección explícita del operador determina a qué proveedor
+                  se envía la consulta.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pie del Modal -->
+        <div
+          class="mt-5 pt-3.5 border-t border-slate-100 flex items-center justify-between shrink-0"
+        >
+          <span class="text-[11px] text-slate-400">
+            SEGUIMIENTO BGH • Sistema de Rastreo Logístico y Cambios
           </span>
-          <button id="clearHistoryBtn" class="text-slate-400 hover:text-red-600 transition font-medium cursor-pointer">
-            Limpiar historial
-          </button>
-        </div>
-        <div id="recentTags" class="flex flex-wrap gap-2">
-          <span class="text-slate-400 italic">No hay pedidos recientes en este dispositivo.</span>
-        </div>
-      </div>
-
-    </div>
-
-    <!-- ====================================================================
-         VISTA 2: BÚSQUEDA MASIVA (LOTE)
-         ==================================================================== -->
-    <div id="batchSearchView" class="hidden space-y-6">
-      
-      <div class="card-clean p-6">
-        <div class="flex items-center justify-between mb-2">
-          <h3 class="text-sm font-bold text-slate-900">Consulta masiva de pedidos por lote</h3>
-          <span class="text-xs text-slate-400">Hasta 20 códigos por consulta</span>
-        </div>
-        <p class="text-xs text-slate-500 mb-4 leading-relaxed">
-          Pegá los números de pedido o guías (uno por línea o separados por comas). Elegí detección automática o un transportista para todo el lote.
-        </p>
-
-        <label for="batchCarrier" class="block text-xs font-bold mb-1">Transportista del lote</label>
-        <select id="batchCarrier" class="border border-slate-300 rounded-lg p-2 text-sm mb-3">
-          <option value="auto">Detectar cada código automáticamente</option>
-          <option value="urbano">Todos por Urbano</option>
-          <option value="andreani">Todos por Andreani</option>
-          <option value="entregar">Todos por Entregar</option>
-        </select>
-        <label for="batchTextarea" class="block text-xs font-bold mb-1">Códigos de pedidos o guías</label>
-        <p id="batchHelp" class="text-xs text-slate-600 mb-2">Hasta 20 códigos por lote. No se descartarán pedidos sin avisarte.</p>
-        <textarea
-          id="batchTextarea" aria-describedby="batchHelp"
-          rows="6" 
-          placeholder="2745296ICBC&#10;2000018697823352&#10;1638408422772-01"
-          class="w-full p-3.5 border border-slate-300 rounded-xl font-mono-code text-xs text-slate-900 focus:border-slate-800 focus:ring-1 focus:ring-slate-800 outline-none transition"
-        ></textarea>
-
-        <div class="mt-3.5 flex items-center justify-between">
-          <button 
-            type="button" 
-            id="batchClearBtn" 
-            class="text-xs text-slate-400 hover:text-slate-700 transition"
+          <button
+            id="okArchitectureModalBtn"
+            type="button"
+            class="btn-primary-urbano px-4 py-2 text-xs font-semibold cursor-pointer"
           >
-            Limpiar lista
+            <span>Cerrar</span>
           </button>
+        </div>
+      </div>
+    </div>
 
-          <button 
-            id="batchSubmitBtn"
-            class="btn-primary-urbano px-5 py-2.5 text-xs"
+    <!-- Pie de Página -->
+    <footer
+      class="mt-auto py-6 text-center text-xs text-slate-400 border-t border-slate-200 bg-white"
+    >
+      <div
+        class="max-w-5xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-2"
+      >
+        <div class="flex items-center gap-2">
+          <p><strong>SEGUIMIENTO BGH</strong> • Portal de Envíos y Logística Inversa</p>
+          <button
+            id="footerArchitectureBtn"
+            type="button"
+            class="text-blue-600 hover:text-blue-800 underline font-semibold text-[11px] cursor-pointer"
           >
-            <i class="fa-solid fa-play text-[10px]"></i>
-            <span>Consultar lote de pedidos</span>
+            Cómo funciona
           </button>
         </div>
+        <p class="text-[11px] text-slate-400"
+          >Consultas de seguimiento a Urbano, Andreani y Entregar</p
+        >
       </div>
+    </footer>
 
-      <!-- Tabla de Resultados Masivos -->
-      <div id="batchResultsBox" class="hidden card-clean overflow-hidden">
-        <div class="px-5 py-3.5 border-b border-slate-200 bg-slate-50 flex items-center justify-between text-xs">
-          <span class="font-bold text-slate-800">Resultados del lote</span>
-          <span id="batchSummaryStats" class="font-mono-code text-slate-500"></span>
-        </div>
-
-        <div class="overflow-x-auto">
-          <table class="tracking-table">
-            <thead>
-              <tr>
-                <th>Código / Pedido</th>
-                <th>Courier</th>
-                <th>Guía Oficial</th>
-                <th>Estado Actual</th>
-                <th>Última Actualización</th>
-                <th style="text-align: right;">Acceso Oficial</th>
-              </tr>
-            </thead>
-            <tbody id="batchTableBody">
-              <!-- JS -->
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-    </div>
-
-  </main>
-
-  <!-- Notificación Toast Flotante -->
-  <div id="toastNotification" class="toast-notification">
-    <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400"></i>
-    <span id="toastMessage">Texto copiado al portapapeles</span>
-  </div>
-
-  <!-- Modal para Configurar o Renovar Sesión de Entregar -->
-  <div id="sessionModal" class="modal-overlay" role="dialog" aria-modal="true" aria-label="Sesión de Entregar" aria-hidden="true" tabindex="-1">
-    <div class="modal-card p-6">
-      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-        <div class="flex items-center gap-2.5">
-          <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
-            <i class="fa-solid fa-key text-xs"></i>
-          </div>
-          <div>
-            <h4 class="text-sm font-bold text-slate-900">Sesión de Entregar</h4>
-            <p class="text-[11px] text-slate-400">Administrador de cookie activa</p>
-          </div>
-        </div>
-        <button id="closeSessionModalBtn" aria-label="Cerrar diálogo" type="button" class="text-slate-400 hover:text-slate-600 p-1">
-          <i class="fa-solid fa-xmark text-sm"></i>
-        </button>
-      </div>
-
-      <div class="mt-4 space-y-3 text-xs text-slate-600">
-        <p class="leading-relaxed">
-          Para consultar la plataforma <strong>svr.entregar.net.ar</strong>, se utiliza la cookie de sesión activa. El servidor comprueba periódicamente su vigencia; el proveedor puede exigir una renovación.
-        </p>
-        <div>
-          <label for="sessionCookieInput" class="block font-bold text-slate-800 mb-1">Cookie de sesión (PHPSESSID / PHPSESSID_):</label>
-          <textarea 
-            id="sessionCookieInput" 
-            rows="3" 
-            class="w-full p-2.5 border border-slate-300 rounded-lg font-mono-code text-[11px] text-slate-800 focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-none transition"
-            placeholder="Pegá aquí la cookie de svr.entregar.net.ar..."
-          ></textarea>
-        </div>
-        <div id="sessionStatusMsg" class="hidden p-2.5 rounded-lg text-xs font-medium"></div>
-      </div>
-
-      <div class="mt-5 flex items-center justify-end gap-2.5">
-        <button id="cancelSessionModalBtn" type="button" class="btn-secondary px-3 py-1.5 text-xs">Cerrar</button>
-        <button id="saveSessionCookieBtn" type="button" class="btn-primary-entregar px-4 py-1.5 text-xs">
-          <span>Guardar y Verificar</span>
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ======================================================================
-       MODAL DE PRESENTACIÓN / ARQUITECTURA TÉCNICA DEL SISTEMA
-       ====================================================================== -->
-  <div id="architectureModal" class="modal-overlay" role="dialog" aria-modal="true" aria-label="Cómo funciona el seguimiento" aria-hidden="true" tabindex="-1">
-    <div class="modal-card modal-card-lg p-5 sm:p-7">
-      
-      <!-- Cabecera del Modal -->
-      <div class="flex items-center justify-between pb-4 border-b border-slate-100 shrink-0">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-base shadow-sm">
-            <i class="fa-solid fa-layer-group"></i>
-          </div>
-          <div>
-            <div class="flex items-center gap-2">
-              <h3 class="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
-                SEGUIMIENTO BGH
-              </h3>
-              <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
-                Arquitectura del Sistema
-              </span>
-            </div>
-            <p class="text-xs text-slate-500">Documentación técnica, métodos de extracción por courier y tecnología empleada</p>
-          </div>
-        </div>
-        <button id="closeArchitectureModalBtn" aria-label="Cerrar diálogo" type="button" class="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-100 transition cursor-pointer">
-          <i class="fa-solid fa-xmark text-base"></i>
-        </button>
-      </div>
-
-      <!-- Contenido Scrollable con Información Completa -->
-      <div class="modal-body-scroll mt-4 space-y-6 pr-1 text-slate-700 text-xs sm:text-sm">
-        
-        <!-- Bloque 1: Resumen Operativo BGH -->
-        <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 sm:p-5">
-          <div class="flex items-center gap-2 mb-2 font-bold text-slate-900 text-sm">
-            <i class="fa-solid fa-building text-slate-700"></i>
-            <span>Centralización y Logística Unificada BGH</span>
-          </div>
-          <p class="text-slate-600 leading-relaxed text-xs">
-            BGH comercializa productos a través de múltiples canales (Mercado Libre, Tienda Oficial BGH, ICBC Mall, bancos y retail). 
-            Los envíos directos se distribuyen principalmente a través de <strong>Urbano Express</strong> y <strong>Correo Andreani</strong>. 
-            Sin embargo, <strong>todos los cambios y reclamos por productos dañados, incorrectos o con fallas técnicas se canalizan exclusivamente mediante Entregar</strong>. 
-            Esta plataforma unifica ambas operaciones en una interfaz de alta velocidad.
-          </p>
-        </div>
-
-        <!-- Bloque 2: ¿Cómo rastreamos en cada Courier? -->
-        <div class="space-y-3">
-          <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
-            <i class="fa-solid fa-truck-fast text-slate-500"></i>
-            <span>Métodos de Rastreo por Empresa de Correo</span>
-          </h4>
-
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-3.5">
-            
-            <!-- Card Courier: Urbano -->
-            <div class="p-4 rounded-xl border border-red-200 bg-red-50/20 flex flex-col justify-between">
-              <div>
-                <div class="flex items-center justify-between mb-2">
-                  <span class="font-bold text-slate-900 text-sm flex items-center gap-1.5">
-                    <span class="w-2.5 h-2.5 rounded-full bg-red-600 inline-block"></span>
-                    Urbano Express
-                  </span>
-                  <span class="text-[10px] font-semibold text-red-700 bg-red-100/60 px-1.5 py-0.5 rounded border border-red-200">Portal BGH</span>
-                </div>
-                <div class="space-y-2 text-[11px] text-slate-600 leading-relaxed">
-                  <p>
-                    <strong>Cuenta Fija:</strong> Opera con la cuenta consolidada BGH <code class="font-mono bg-white px-1 py-0.5 rounded border border-slate-200 font-bold text-slate-800">004185</code>.
-                  </p>
-                  <p>
-                    <strong>Doble Consulta HTTP:</strong> Primero resuelve el estado general del remito en <code class="text-[10px] bg-white px-1 rounded border border-slate-200">cespecifica</code> y luego ejecuta un POST asíncrono a <code class="text-[10px] bg-white px-1 rounded border border-slate-200">especifica_controller.php</code>.
-                  </p>
-                  <p>
-                    <strong>Datos Extraídos:</strong> Trazabilidad completa paso a paso, planta de origen, móviles de reparto y confirmación de entrega con fecha y hora exacta.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <!-- Card Courier: Andreani -->
-            <div class="p-4 rounded-xl border border-blue-200 bg-blue-50/20 flex flex-col justify-between">
-              <div>
-                <div class="flex items-center justify-between mb-2">
-                  <span class="font-bold text-slate-900 text-sm flex items-center gap-1.5">
-                    <span class="w-2.5 h-2.5 rounded-full bg-blue-600 inline-block"></span>
-                    Correo Andreani
-                  </span>
-                  <span class="text-[10px] font-semibold text-blue-700 bg-blue-100/60 px-1.5 py-0.5 rounded border border-blue-200">API AES-256</span>
-                </div>
-                <div class="space-y-2 text-[11px] text-slate-600 leading-relaxed">
-                  <p>
-                    <strong>API Oficial Cifrada:</strong> Conexión directa contra los endpoints de <code class="text-[10px] bg-white px-1 rounded border border-slate-200">tracking-api.andreani.com</code> sobre la red de Cloudflare.
-                  </p>
-                  <p>
-                    <strong>Criptografía en Tránsito:</strong> Payload protegido con cifrado simétrico <strong>AES-256-CBC</strong> con tokens oficiales (<code class="text-[10px]">idReceptor: 1</code>).
-                  </p>
-                  <p>
-                    <strong>Resolución Inteligente:</strong> Mapea automáticamente órdenes de compra de Mercado Libre (ej: <code class="font-mono text-[10px]">2000018875238250</code>) a la guía interna de 15 dígitos de Andreani y audita el historial real sin falsos positivos de entrega.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <!-- Card Courier: Entregar -->
-            <div class="p-4 rounded-xl border border-emerald-200 bg-emerald-50/20 flex flex-col justify-between">
-              <div>
-                <div class="flex items-center justify-between mb-2">
-                  <span class="font-bold text-slate-900 text-sm flex items-center gap-1.5">
-                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block"></span>
-                    Entregar (BGH)
-                  </span>
-                  <span class="text-[10px] font-semibold text-emerald-700 bg-emerald-100/60 px-1.5 py-0.5 rounded border border-emerald-200">Sesión Emulada</span>
-                </div>
-                <div class="space-y-2 text-[11px] text-slate-600 leading-relaxed">
-                  <p>
-                    <strong>Simulación de Operador:</strong> Emula a un usuario humano logueado en la plataforma Scriptcase (<code class="text-[10px] bg-white px-1 rounded border border-slate-200">svr.entregar.net.ar</code>) utilizando cookies de sesión <code class="font-mono text-[10px]">PHPSESSID</code>.
-                  </p>
-                  <p>
-                    <strong>Keep-Alive Automático:</strong> El backend ejecuta un ping silencioso cada 10 minutos para evitar que la sesión caduque por inactividad.
-                  </p>
-                  <p>
-                    <strong>Desglose de Bultos:</strong> Consulta la grilla <code class="text-[10px] bg-white px-1 rounded border border-slate-200">apl_grid_detalle_pedido</code> y extrae el listado completo de productos, unidades y conteo total de bultos físicos.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-          </div>
-        </div>
-
-        <!-- Bloque 3: Lógica Operativa de Cambios y Referencias en Entregar -->
-        <div class="card-clean p-4 sm:p-5 border-emerald-200 bg-emerald-50/15 space-y-3">
-          <div class="flex items-center gap-2 font-bold text-slate-900 text-sm">
-            <i class="fa-solid fa-arrows-spin text-emerald-600"></i>
-            <span>Logística Inversa: Referencias y Vinculación ZECH / ZRE7</span>
-          </div>
-          <p class="text-xs text-slate-600 leading-relaxed">
-            En el sistema de Entregar, cada movimiento logístico se categoriza mediante prefijos de referencia específicos:
-          </p>
-          
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
-            <div class="p-2.5 bg-white rounded-lg border border-slate-200">
-              <span class="font-mono font-bold text-slate-900 text-xs px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 mr-1.5">ZECO</span>
-              <strong>Entrega Original:</strong> Envío de la compra realizada por primera vez hacia el domicilio del cliente.
-            </div>
-
-            <div class="p-2.5 bg-white rounded-lg border border-slate-200">
-              <span class="font-mono font-bold text-amber-700 text-xs px-1.5 py-0.5 rounded bg-amber-50 border border-amber-200 mr-1.5">ZRE2</span>
-              <strong>Retiro Simple:</strong> Recolección del producto por devolución o desistimiento de compra (sin reemplazo).
-            </div>
-
-            <div class="p-2.5 bg-white rounded-lg border border-emerald-300 sm:col-span-2 bg-emerald-50/40">
-              <div class="flex items-center gap-2 mb-1">
-                <span class="font-mono font-bold text-blue-700 text-xs px-1.5 py-0.5 rounded bg-blue-50 border border-blue-200">ZECH</span>
-                <i class="fa-solid fa-arrow-right-arrow-left text-[10px] text-slate-400"></i>
-                <span class="font-mono font-bold text-emerald-700 text-xs px-1.5 py-0.5 rounded bg-emerald-50 border border-emerald-200">ZRE7</span>
-                <span class="font-bold text-slate-900 text-xs">Cambio contra entrega (Van siempre juntos):</span>
-              </div>
-              <p class="text-[11px] text-slate-600 leading-relaxed">
-                El transportista entrega un producto nuevo en sustitución (<strong class="text-blue-800">ZECH</strong>) y retira en el mismo acto el producto recibido con fallas o defectos (<strong class="text-emerald-800">ZRE7</strong>). 
-                Ambos trámites se vinculan en el <em>Campo Auxiliar de Texto 2</em>. Nuestro algoritmo detecta esta vinculación cruzada automáticamente y permite alternar entre el despacho y el retiro con un solo clic.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Bloque 4: Stack Tecnológico y Arquitectura de Software -->
-        <div class="space-y-3">
-          <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
-            <i class="fa-solid fa-microchip text-slate-500"></i>
-            <span>Stack Tecnológico & Rendimiento del Sistema</span>
-          </h4>
-
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-            
-            <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
-              <div class="font-bold text-slate-900 flex items-center gap-2">
-                <i class="fa-brands fa-node-js text-emerald-600 text-base"></i>
-                <span>Node.js Nativo (Zero External Dependencies)</span>
-              </div>
-              <p class="text-slate-600 text-[11px] leading-relaxed">
-                El backend fue desarrollado 100% con módulos estándar de Node.js (<code class="text-[10px]">http</code>, <code class="text-[10px]">https</code>, <code class="text-[10px]">crypto</code>, <code class="text-[10px]">fs</code>), <strong>sin dependencias de ejecución de npm</strong> (sin Express, Axios ni Cheerio). Los estilos e iconos se compilan con dependencias de desarrollo y se sirven localmente. El rendimiento depende del entorno.
-              </p>
-            </div>
-
-            <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
-              <div class="font-bold text-slate-900 flex items-center gap-2">
-                <i class="fa-solid fa-shield-halved text-blue-600 text-base"></i>
-                <span>Criptografía & Cloudflare Direct Gateway</span>
-              </div>
-              <p class="text-slate-600 text-[11px] leading-relaxed">
-                Implementación de algoritmos <strong>AES-256-CBC</strong> para cifrado y descifrado de peticiones con Andreani. Usa DNS y alternativas de conexión de la integración, con certificado TLS verificado y límites de tiempo. La configuración de acceso se guarda de forma privada.
-              </p>
-            </div>
-
-            <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
-              <div class="font-bold text-slate-900 flex items-center gap-2">
-                <i class="fa-solid fa-code text-indigo-600 text-base"></i>
-                <span>Frontend Ultraliviano y Reactivo</span>
-              </div>
-              <p class="text-slate-600 text-[11px] leading-relaxed">
-                Single Page Application (SPA) en Vanilla JavaScript nativo con Tailwind CSS y Font Awesome 6.5. Carga instantánea, animaciones sutiles, Bento Grid modular, soporte para búsquedas masivas y historial local recuperable en <code class="text-[10px]">localStorage</code>.
-              </p>
-            </div>
-
-            <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
-              <div class="font-bold text-slate-900 flex items-center gap-2">
-                <i class="fa-solid fa-shuffle text-purple-600 text-base"></i>
-                <span>Búsqueda Cruzada Inteligente (Cross-Carrier)</span>
-              </div>
-              <p class="text-slate-600 text-[11px] leading-relaxed">
-                Permite buscar el mismo número de pedido entre distintas paqueterías (ej. ingresar un pedido de Mercado Libre en Entregar para verificar si tiene un cambio asociado) sin que el sistema fuerce redirecciones no deseadas gracias al bloqueo de courier explícito.
-              </p>
-            </div>
-
-          </div>
-        </div>
-
-      </div>
-
-      <!-- Pie del Modal -->
-      <div class="mt-5 pt-3.5 border-t border-slate-100 flex items-center justify-between shrink-0">
-        <span class="text-[11px] text-slate-400">
-          SEGUIMIENTO BGH • Sistema de Rastreo Logístico y Cambios
-        </span>
-        <button id="okArchitectureModalBtn" type="button" class="btn-primary-urbano px-4 py-2 text-xs font-semibold cursor-pointer">
-          <span>Entendido / Cerrar</span>
-        </button>
-      </div>
-
-    </div>
-  </div>
-
-  <!-- Pie de Página -->
-  <footer class="mt-auto py-6 text-center text-xs text-slate-400 border-t border-slate-200 bg-white">
-    <div class="max-w-5xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-2">
-      <div class="flex items-center gap-2">
-        <p><strong>SEGUIMIENTO BGH</strong> • Portal de Envíos y Logística Inversa</p>
-        <button id="footerArchitectureBtn" type="button" class="text-blue-600 hover:text-blue-800 underline font-semibold text-[11px] cursor-pointer">
-          (Ver Arquitectura Técnica)
-        </button>
-      </div>
-      <p class="text-[11px] text-slate-400">Rastreador unificado en tiempo real para Urbano Express, Correo Andreani y Entregar</p>
-    </div>
-  </footer>
-
-  <script src="app.js"></script>
-</body>
+    <script src="app.js"></script>
+  </body>
 </html>

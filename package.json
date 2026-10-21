@@ -1,15 +1,15 @@
 {
   "name": "seguimiento-bgh",
   "version": "1.0.0",
-  "description": "SEGUIMIENTO BGH - Sistema Unificado de Rastreo: Urbano Express, Correo Andreani y Entregar",
+  "description": "Consulta de envíos de Urbano, Andreani y Entregar",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
     "test": "node --test test/*.test.cjs",
-    "check": "node --check server.js && node --check public/app.js && node --check lib/router.js && node --check lib/runtime.js && node --check lib/session.js && node --check lib/config.js",
-    "build:assets": "npx tailwindcss -c tailwind.config.cjs -i styles/tailwind.css -o public/tailwind.css --minify && node scripts/copy-icons.cjs",
-    "build": "node -e \"console.log('Static assets verified in public/')\""
+    "check": "node --check server.js && node --check public/app.js && node --check lib/router.js && node --check lib/runtime.js && node --check lib/session.js && node --check lib/config.js && node --check scripts/verify-assets.cjs && node --check scripts/copy-icons.cjs",
+    "build:assets": "tailwindcss -c tailwind.config.cjs -i styles/tailwind.css -o public/tailwind.css --minify && node scripts/copy-icons.cjs",
+    "build": "node scripts/verify-assets.cjs"
   },
   "engines": {
     "node": ">=22.0.0"
@@ -21,7 +21,6 @@
     "mercadolibre",
     "logistica"
   ],
-  "author": "",
   "license": "ISC",
   "devDependencies": {
     "@fortawesome/fontawesome-free": "6.5.1",

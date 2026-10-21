@@ -1,14 +1,38 @@
 const safeStorage = {
-  getItem(key) { try { return localStorage.getItem(key); } catch { return null; } },
-  setItem(key, value) { try { localStorage.setItem(key, value); } catch {} },
-  removeItem(key) { try { localStorage.removeItem(key); } catch {} }
+  getItem(key) {
+    try {
+      return localStorage.getItem(key);
+    } catch {
+      return null;
+    }
+  },
+  setItem(key, value) {
+    try {
+      localStorage.setItem(key, value);
+    } catch {}
+  },
+  removeItem(key) {
+    try {
+      localStorage.removeItem(key);
+    } catch {}
+  },
 };
 function readRecentSearches() {
   try {
     const parsed = JSON.parse(safeStorage.getItem('urbano_recent_searches') || '[]');
     if (!Array.isArray(parsed)) return [];
-    return parsed.filter(item => typeof item === 'string' || (item && typeof item.order === 'string' && ['urbano','andreani','entregar'].includes(item.carrier))).slice(0,8);
-  } catch { return []; }
+    return parsed
+      .filter(
+        (item) =>
+          typeof item === 'string' ||
+          (item &&
+            typeof item.order === 'string' &&
+            ['urbano', 'andreani', 'entregar'].includes(item.carrier))
+      )
+      .slice(0, 8);
+  } catch {
+    return [];
+  }
 }
 function safeQuantity(value) {
   const text = String(value ?? '').trim();
@@ -20,18 +44,14 @@ function announce(message) {
   const node = document.getElementById('liveStatus');
   if (node) node.textContent = message;
 }
-// ==========================================================================
-// SEGUIMIENTO BGH — Lógica Frontend (Single Page Application)
-// Rastreo Unificado en Tiempo Real: Urbano Express, Correo Andreani y Entregar
-// ==========================================================================
 
-// ==========================================================================
-// SECCIÓN 1: ESTADO GLOBAL Y SELECTORES DEL DOM
-// ==========================================================================
+// Interfaz de seguimiento de Urbano, Andreani y Entregar.
+
+// Estado y referencias del DOM.
 
 // Estado de la aplicación
 let currentCarrier = safeStorage.getItem('selected_carrier') || 'urbano';
-if (!['urbano','andreani','entregar'].includes(currentCarrier)) currentCarrier = 'urbano';
+if (!['urbano', 'andreani', 'entregar'].includes(currentCarrier)) currentCarrier = 'urbano';
 const currentShipper = '004185'; // Cuenta consolidada fija BGH (Urbano)
 let recentSearches = readRecentSearches();
 let lastTrackedData = null;
@@ -52,7 +72,7 @@ const saveSessionCookieBtn = document.getElementById('saveSessionCookieBtn');
 const sessionCookieInput = document.getElementById('sessionCookieInput');
 const sessionStatusMsg = document.getElementById('sessionStatusMsg');
 
-// Modal de Presentación / Arquitectura Técnica del Sistema
+// Ayuda sobre el seguimiento
 const architectureBtn = document.getElementById('architectureBtn');
 const footerArchitectureBtn = document.getElementById('footerArchitectureBtn');
 const architectureModal = document.getElementById('architectureModal');
@@ -164,9 +184,8 @@ const toastMessage = document.getElementById('toastMessage');
 const toastIcon = document.getElementById('toastIcon');
 let toastTimeout = null;
 
-// ==========================================================================
 // Inicialización
-// ==========================================================================
+
 function init() {
   setCarrier(currentCarrier, false);
   renderRecentSearches();
@@ -187,7 +206,10 @@ function init() {
 
   // Tecla '/' para enfocar el buscador
   window.addEventListener('keydown', (e) => {
-    if (e.key === '/' && !document.activeElement?.closest('input, textarea, select, [contenteditable], [role=dialog]')) {
+    if (
+      e.key === '/' &&
+      !document.activeElement?.closest('input, textarea, select, [contenteditable], [role=dialog]')
+    ) {
       e.preventDefault();
       orderInput.focus();
     }
@@ -245,16 +267,23 @@ function init() {
   }
 }
 
-// ==========================================================================
-// SECCIÓN 2: CONTROLADOR DE PAQUETERÍAS (URBANO, ANDREANI, ENTREGAR)
-// - Conmutación visual de paletas y etiquetas por courier
-// - Bloqueo de transportista explícito por el operador (userExplicitCarrier)
-// - Detección inteligente por formato (Mercado Libre, referencias BGH, etc.)
-// ==========================================================================
+// Selección del transportista.
+
 function setCarrier(carrier, clearViews = true) {
   currentCarrier = carrier;
-  if (clearViews) { trackingSequence++; trackingController?.abort(); loadingBox.classList.add('hidden'); submitBtn.disabled = false; submitBtn.classList.remove('opacity-50'); }
-  for (const [name, button] of [['urbano',carrierUrbanoBtn],['andreani',carrierAndreaniBtn],['entregar',carrierEntregarBtn]]) button?.setAttribute('aria-pressed', String(name === carrier));
+  if (clearViews) {
+    trackingSequence++;
+    trackingController?.abort();
+    loadingBox.classList.add('hidden');
+    submitBtn.disabled = false;
+    submitBtn.classList.remove('opacity-50');
+  }
+  for (const [name, button] of [
+    ['urbano', carrierUrbanoBtn],
+    ['andreani', carrierAndreaniBtn],
+    ['entregar', carrierEntregarBtn],
+  ])
+    button?.setAttribute('aria-pressed', String(name === carrier));
   safeStorage.setItem('selected_carrier', currentCarrier);
 
   if (clearViews) {
@@ -275,8 +304,9 @@ function setCarrier(carrier, clearViews = true) {
 
     searchLabel.textContent = 'Número de pedido (Mercado Libre) o guía oficial (Andreani):';
     carrierIndicatorTag.textContent = 'Modo Andreani';
-    carrierIndicatorTag.className = 'text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200';
-    orderInput.placeholder = 'Ingresá tu pedido de Mercado Libre o guía, ej: 2000018697823352';
+    carrierIndicatorTag.className =
+      'text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200';
+    orderInput.placeholder = 'Ingresá tu pedido de Mercado Libre o guía, ej: 2000000000000000';
 
     shipperBadgeContainer.classList.add('hidden');
     if (entregarSessionBtn) entregarSessionBtn.classList.add('hidden');
@@ -288,8 +318,9 @@ function setCarrier(carrier, clearViews = true) {
 
     searchLabel.textContent = 'Número de pedido, remito o referencia (Entregar):';
     carrierIndicatorTag.textContent = 'Modo Entregar';
-    carrierIndicatorTag.className = 'text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200';
-    orderInput.placeholder = 'Ingresá tu código o pedido BGH, ej: 1659868563485-01';
+    carrierIndicatorTag.className =
+      'text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200';
+    orderInput.placeholder = 'Ingresá tu código o pedido BGH, ej: 0000000000000-01';
 
     shipperBadgeContainer.classList.add('hidden');
     if (entregarSessionBtn) {
@@ -304,8 +335,9 @@ function setCarrier(carrier, clearViews = true) {
 
     searchLabel.textContent = 'Número de pedido o código de compra (Urbano):';
     carrierIndicatorTag.textContent = 'Modo Urbano Express';
-    carrierIndicatorTag.className = 'text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200';
-    orderInput.placeholder = 'Ingresá tu código, ej: 2745296ICBC';
+    carrierIndicatorTag.className =
+      'text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200';
+    orderInput.placeholder = 'Ingresá tu código, ej: PEDIDO-EJEMPLO';
 
     shipperBadgeContainer.classList.remove('hidden');
     if (entregarSessionBtn) entregarSessionBtn.classList.add('hidden');
@@ -329,11 +361,16 @@ if (carrierEntregarBtn) {
   });
 }
 
-// Auto-detección inteligente de courier
+// Detección por formato del código
 function autoDetectCarrier(code) {
   const trimmed = (code || '').trim();
   // Referencias exclusivas de Entregar (ZECO, ZECH, ZRE7, ZRE2)
-  if (trimmed.startsWith('ZECO') || trimmed.startsWith('ZECH') || trimmed.startsWith('ZRE7') || trimmed.startsWith('ZRE2')) {
+  if (
+    trimmed.startsWith('ZECO') ||
+    trimmed.startsWith('ZECH') ||
+    trimmed.startsWith('ZRE7') ||
+    trimmed.startsWith('ZRE2')
+  ) {
     return 'entregar';
   }
   // Si el usuario eligió explícitamente el transportista, respetarlo siempre
@@ -343,18 +380,23 @@ function autoDetectCarrier(code) {
   if (trimmed.includes('-0') || /^\d{13}-\d{2}$/.test(trimmed)) {
     return 'entregar';
   }
-  if (/^2000\d{10,14}$/.test(trimmed) || trimmed.startsWith('2000') || trimmed.startsWith('4004') || (/^\d{15,16}$/.test(trimmed))) {
+  if (
+    /^2000\d{10,14}$/.test(trimmed) ||
+    trimmed.startsWith('2000') ||
+    trimmed.startsWith('4004') ||
+    /^\d{15,16}$/.test(trimmed)
+  ) {
     return 'andreani';
   }
   return currentCarrier;
 }
 
-// ==========================================================================
 // Navegación Pestañas (Individual vs Masivo)
-// ==========================================================================
+
 tabSingle.addEventListener('click', () => {
   tabSingle.classList.add('active');
-  tabSingle.setAttribute('aria-pressed','true'); tabBatch.setAttribute('aria-pressed','false');
+  tabSingle.setAttribute('aria-pressed', 'true');
+  tabBatch.setAttribute('aria-pressed', 'false');
   tabBatch.classList.remove('active');
   singleSearchView.classList.remove('hidden');
   batchSearchView.classList.add('hidden');
@@ -362,34 +404,37 @@ tabSingle.addEventListener('click', () => {
 
 tabBatch.addEventListener('click', () => {
   tabBatch.classList.add('active');
-  tabBatch.setAttribute('aria-pressed','true'); tabSingle.setAttribute('aria-pressed','false');
+  tabBatch.setAttribute('aria-pressed', 'true');
+  tabSingle.setAttribute('aria-pressed', 'false');
   tabSingle.classList.remove('active');
   batchSearchView.classList.remove('hidden');
   singleSearchView.classList.add('hidden');
 });
 
-// ==========================================================================
 // Alternancia de Vistas: Línea de Tiempo vs Tabla
-// ==========================================================================
+
 viewTimelineBtn.addEventListener('click', () => {
   currentViewMode = 'timeline';
-  viewTimelineBtn.className = 'px-2.5 py-1 rounded-md bg-slate-100 text-slate-900 transition flex items-center gap-1.5';
-  viewTableBtn.className = 'px-2.5 py-1 rounded-md text-slate-500 hover:text-slate-900 transition flex items-center gap-1.5';
+  viewTimelineBtn.className =
+    'px-2.5 py-1 rounded-md bg-slate-100 text-slate-900 transition flex items-center gap-1.5';
+  viewTableBtn.className =
+    'px-2.5 py-1 rounded-md text-slate-500 hover:text-slate-900 transition flex items-center gap-1.5';
   timelineFeedContainer.classList.remove('hidden');
   movementsTableContainer.classList.add('hidden');
 });
 
 viewTableBtn.addEventListener('click', () => {
   currentViewMode = 'table';
-  viewTableBtn.className = 'px-2.5 py-1 rounded-md bg-slate-100 text-slate-900 transition flex items-center gap-1.5';
-  viewTimelineBtn.className = 'px-2.5 py-1 rounded-md text-slate-500 hover:text-slate-900 transition flex items-center gap-1.5';
+  viewTableBtn.className =
+    'px-2.5 py-1 rounded-md bg-slate-100 text-slate-900 transition flex items-center gap-1.5';
+  viewTimelineBtn.className =
+    'px-2.5 py-1 rounded-md text-slate-500 hover:text-slate-900 transition flex items-center gap-1.5';
   movementsTableContainer.classList.remove('hidden');
   timelineFeedContainer.classList.add('hidden');
 });
 
-// ==========================================================================
 // Portapapeles & Pegado
-// ==========================================================================
+
 pasteBtn.addEventListener('click', async () => {
   try {
     const text = await navigator.clipboard.readText();
@@ -399,7 +444,8 @@ pasteBtn.addEventListener('click', async () => {
         const detected = autoDetectCarrier(code);
         if (detected !== currentCarrier) {
           setCarrier(detected, false);
-          const name = detected === 'andreani' ? 'Andreani' : (detected === 'entregar' ? 'Entregar' : 'Urbano');
+          const name =
+            detected === 'andreani' ? 'Andreani' : detected === 'entregar' ? 'Entregar' : 'Urbano';
           showToast(`Detectado código de ${name}`, 'info');
         }
       }
@@ -438,7 +484,8 @@ trackForm.addEventListener('submit', (e) => {
       const detected = autoDetectCarrier(order);
       if (detected !== currentCarrier) {
         setCarrier(detected, false);
-        const name = detected === 'andreani' ? 'Andreani' : (detected === 'entregar' ? 'Entregar' : 'Urbano');
+        const name =
+          detected === 'andreani' ? 'Andreani' : detected === 'entregar' ? 'Entregar' : 'Urbano';
         showToast(`Detectado código de ${name}`, 'info');
       }
     }
@@ -446,30 +493,33 @@ trackForm.addEventListener('submit', (e) => {
   }
 });
 
-// ==========================================================================
 // Consulta al Servidor (API Tracking)
-// ==========================================================================
+
 async function performTrack(order) {
-  if (!order || order.length > 120 || /[\x00-\x1f\x7f]/.test(order)) { showError('Ingresá un código válido de hasta 120 caracteres.'); return; }
+  if (!order || order.length > 120 || /[\x00-\x1f\x7f]/.test(order)) {
+    showError('Ingresá un código válido de hasta 120 caracteres.');
+    return;
+  }
   trackingController?.abort();
-  const controller = new AbortController(); trackingController = controller;
+  const controller = new AbortController();
+  trackingController = controller;
   const sequence = ++trackingSequence;
   const carrier = currentCarrier;
   const deadline = setTimeout(() => controller.abort('timeout'), 35000);
   announce('Consultando envío.');
   orderInput.removeAttribute('aria-invalid');
-  resultBox.setAttribute('aria-busy','true');
+  resultBox.setAttribute('aria-busy', 'true');
   const newUrl = new URL(window.location);
   newUrl.searchParams.set('order', order);
   newUrl.searchParams.set('carrier', currentCarrier);
   window.history.pushState({}, '', newUrl);
 
   if (currentCarrier === 'entregar') {
-    loadingText.textContent = 'Consultando estado oficial en Entregar...';
+    loadingText.textContent = 'Consultando envío en Entregar...';
   } else if (currentCarrier === 'andreani') {
-    loadingText.textContent = 'Consultando estado oficial en Andreani...';
+    loadingText.textContent = 'Consultando envío en Andreani...';
   } else {
-    loadingText.textContent = 'Consultando estado oficial en Urbano...';
+    loadingText.textContent = 'Consultando envío en Urbano...';
   }
 
   loadingBox.classList.remove('hidden');
@@ -479,7 +529,10 @@ async function performTrack(order) {
   submitBtn.classList.add('opacity-50');
 
   try {
-    const res = await fetch(`/api/track?order=${encodeURIComponent(order)}&shipper=${encodeURIComponent(currentShipper)}&carrier=${encodeURIComponent(carrier)}`, { signal: controller.signal });
+    const res = await fetch(
+      `/api/track?order=${encodeURIComponent(order)}&shipper=${encodeURIComponent(currentShipper)}&carrier=${encodeURIComponent(carrier)}`,
+      { signal: controller.signal }
+    );
     const data = await res.json();
     if (sequence !== trackingSequence) return;
 
@@ -494,47 +547,52 @@ async function performTrack(order) {
     addToRecent(order, data.carrier || currentCarrier);
   } catch (err) {
     if (sequence !== trackingSequence) return;
-    if (controller.signal.aborted) { showError('La consulta agotó el tiempo de espera. Reintentá.'); return; }
+    if (controller.signal.aborted) {
+      showError('La consulta agotó el tiempo de espera. Reintentá.');
+      return;
+    }
     let fallbackUrl = `https://apis.urbano.com.ar/cespecifica/?tracking=${currentShipper}${order}`;
-    if (currentCarrier === 'andreani') fallbackUrl = `https://www.andreani.com/envio/${encodeURIComponent(order)}`;
-    if (currentCarrier === 'entregar') fallbackUrl = `https://svr.entregar.net.ar/tracking_bgh/landingPage.php?numero_orden=${encodeURIComponent(order)}&numero_hash=&boton=Consultar`;
+    if (currentCarrier === 'andreani')
+      fallbackUrl = `https://www.andreani.com/envio/${encodeURIComponent(order)}`;
+    if (currentCarrier === 'entregar')
+      fallbackUrl = `https://svr.entregar.net.ar/tracking_bgh/landingPage.php?numero_orden=${encodeURIComponent(order)}&numero_hash=&boton=Consultar`;
     showError(`Error de conexión con el servidor: ${err.message}`, fallbackUrl);
   } finally {
     clearTimeout(deadline);
     if (sequence !== trackingSequence) return;
-    resultBox.setAttribute('aria-busy','false');
+    resultBox.setAttribute('aria-busy', 'false');
     loadingBox.classList.add('hidden');
     submitBtn.disabled = false;
     submitBtn.classList.remove('opacity-50');
   }
 }
 
-// ==========================================================================
-// SECCIÓN 4: PARSEO Y RENDERIZADO VISUAL UNIFICADO
-// ==========================================================================
+// Parseo y renderizado visual unificado.
 
-// --------------------------------------------------------------------------
-// 4.1 Configuración de Couriers y Botones de Acceso Oficial
-// --------------------------------------------------------------------------
+// Enlaces y selección de transportista.
+
 function renderResult(data) {
   const carrier = data.carrier || currentCarrier;
 
   // Configurar distintivo de la empresa y botón oficial
   if (carrier === 'andreani') {
     resultCarrierTag.textContent = 'Correo Andreani';
-    resultCarrierTag.className = 'text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-blue-50 text-blue-800 border border-blue-200';
+    resultCarrierTag.className =
+      'text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-blue-50 text-blue-800 border border-blue-200';
     officialLinkBtn.className = 'btn-primary-andreani px-4 py-2 text-xs';
-    officialLinkText.textContent = 'Ver en Andreani Oficial';
+    officialLinkText.textContent = 'Abrir en Andreani';
   } else if (carrier === 'entregar') {
     resultCarrierTag.textContent = 'Entregar';
-    resultCarrierTag.className = 'text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200';
+    resultCarrierTag.className =
+      'text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200';
     officialLinkBtn.className = 'btn-primary-entregar px-4 py-2 text-xs';
-    officialLinkText.textContent = 'Ver en Entregar Oficial';
+    officialLinkText.textContent = 'Abrir en Entregar';
   } else {
     resultCarrierTag.textContent = 'Urbano Express';
-    resultCarrierTag.className = 'text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-red-50 text-red-800 border border-red-200';
+    resultCarrierTag.className =
+      'text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-red-50 text-red-800 border border-red-200';
     officialLinkBtn.className = 'btn-primary-urbano px-4 py-2 text-xs';
-    officialLinkText.textContent = 'Ver en Urbano Oficial';
+    officialLinkText.textContent = 'Abrir en Urbano';
   }
 
   officialLinkBtn.href = data.officialUrl;
@@ -545,7 +603,8 @@ function renderResult(data) {
     if (carrier !== 'entregar') {
       crossCarrierBtnIcon.className = 'fa-solid fa-arrows-rotate text-xs text-emerald-600';
       crossCarrierBtnText.textContent = 'Buscar cambio en Entregar';
-      crossCarrierBtn.title = 'Consultar si este pedido tiene un cambio o retiro registrado en Entregar';
+      crossCarrierBtn.title =
+        'Consultar si este pedido tiene un cambio o retiro registrado en Entregar';
       crossCarrierBtn.onclick = () => {
         userExplicitCarrier = true;
         setCarrier('entregar', false);
@@ -554,7 +613,8 @@ function renderResult(data) {
       };
     } else {
       crossCarrierBtnIcon.className = 'fa-solid fa-truck text-xs text-blue-600';
-      const targetCarrier = (data.order.startsWith('2000') || data.order.startsWith('4004')) ? 'andreani' : 'urbano';
+      const targetCarrier =
+        data.order.startsWith('2000') || data.order.startsWith('4004') ? 'andreani' : 'urbano';
       const targetName = targetCarrier === 'andreani' ? 'Andreani' : 'Urbano';
       crossCarrierBtnText.textContent = `Buscar original en ${targetName}`;
       crossCarrierBtn.title = `Consultar el envío original en ${targetName}`;
@@ -567,10 +627,9 @@ function renderResult(data) {
     }
   }
 
-  // --------------------------------------------------------------------------
-  // 4.2 LÓGICA ENTREGAR: Sub-órdenes, Tramos Múltiples y Banners Operativos
+  // Pedidos y tramos de Entregar.
   //     (ZECO: Entrega original | ZECH: Despacho cambio | ZRE7: Retiro cambio | ZRE2: Devolución)
-  // --------------------------------------------------------------------------
+
   if (data.allOrders && data.allOrders.length > 1) {
     subOrdersContainer.classList.remove('hidden');
     subOrdersCount.textContent = data.allOrders.length;
@@ -582,21 +641,21 @@ function renderResult(data) {
       const pill = document.createElement('button');
       pill.type = 'button';
       const isActive = sIdx === selectedIdx;
-      
+
       const cls = sub.classification || {};
       const typeKey = cls.type || 'general';
       const codeKey = (cls.code || 'otro').toLowerCase();
-      
+
       pill.className = `suborder-pill type-${typeKey} ${isActive ? 'active' : ''}`;
-      
-      const badgeSnippet = cls.code ? `<span class="pill-badge pill-badge-${codeKey}">${escapeHtml(cls.code)}</span>` : '';
+
+      const badgeSnippet = cls.code
+        ? `<span class="pill-badge pill-badge-${codeKey}">${escapeHtml(cls.code)}</span>`
+        : '';
       const op = sub.operacion || 'Envío';
-      const remitoStr = sub.remito ? `${sub.remito}` : (sub.idpedido ? `#${sub.idpedido}` : '');
+      const remitoStr = sub.remito ? `${sub.remito}` : sub.idpedido ? `#${sub.idpedido}` : '';
       const st = sub.status || 'En proceso';
       const myRef = cls.shortRef || sub.referencia || '';
-
-      // Armado de la sección de referencias pedida por el usuario:
-      // "debajo de donde dice que es retiro o despacho por cambio ver cuál es el zech y su vinculado el zre7"
+      // Muestra la referencia del tramo y la operación vinculada.
       let refPairSnippet = '';
       if (cls.isExchange && cls.pairedOrder) {
         const partnerRef = cls.pairedOrder.shortRef || cls.pairedOrder.referencia;
@@ -632,7 +691,11 @@ function renderResult(data) {
         `;
       }
 
-      const subBultos = sub.bultos || (sub.products && sub.products.length > 0 ? sub.products.reduce((acc, p) => acc + (parseInt(p.bultos, 10) || 0), 0) : '1');
+      const subBultos =
+        sub.bultos ||
+        (sub.products && sub.products.length > 0
+          ? sub.products.reduce((acc, p) => acc + (parseInt(p.bultos, 10) || 0), 0)
+          : '1');
       const bultosLabel = `${subBultos} ${subBultos === '1' || subBultos === 1 ? 'bulto' : 'bultos'}`;
 
       pill.innerHTML = `
@@ -677,14 +740,17 @@ function renderResult(data) {
 
 function applySubOrderData(data, subOrder) {
   const isSub = Boolean(subOrder);
-  const cat = isSub ? subOrder.statusCategory : (data.statusCategory || 'in_transit');
-  const label = isSub ? (subOrder.statusLabel || subOrder.status) : (data.statusLabel || data.summary.estadoRaw || 'En proceso');
+  const cat = isSub ? subOrder.statusCategory : data.statusCategory || 'in_transit';
+  const label = isSub
+    ? subOrder.statusLabel || subOrder.status
+    : data.statusLabel || data.summary.estadoRaw || 'En proceso';
   const dateStr = isSub ? subOrder.fechaStatus : data.summary.fechaEstado;
 
   statusLabelText.textContent = label;
   statusDateBadge.textContent = dateStr ? `(${dateStr})` : '';
 
-  statusBanner.className = 'p-4 sm:p-5 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-4';
+  statusBanner.className =
+    'p-4 sm:p-5 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-4';
 
   if (cat === 'delivered') {
     statusBanner.classList.add('bg-emerald-50/80', 'border-emerald-100');
@@ -709,16 +775,16 @@ function applySubOrderData(data, subOrder) {
   }
 
   // Metadatos clave
-  const refCode = isSub ? (subOrder.referencia || data.order) : (data.referenciaEnvio || data.order);
+  const refCode = isSub ? subOrder.referencia || data.order : data.referenciaEnvio || data.order;
   resultOrderTitle.textContent = refCode;
 
   // Actualizar enlace oficial según transportista y sub-orden
   const carrier = data.carrier || currentCarrier;
   if (carrier === 'entregar') {
-    const activeRef = isSub ? (subOrder.referencia || refCode) : (data.referenciaEnvio || refCode);
+    const activeRef = isSub ? subOrder.referencia || refCode : data.referenciaEnvio || refCode;
     officialLinkBtn.href = `https://svr.entregar.net.ar/tracking_bgh/landingPage.php?numero_orden=${encodeURIComponent(activeRef)}&numero_hash=&boton=Consultar`;
   } else {
-    officialLinkBtn.href = isSub ? (subOrder.officialUrl || data.officialUrl) : data.officialUrl;
+    officialLinkBtn.href = isSub ? subOrder.officialUrl || data.officialUrl : data.officialUrl;
   }
 
   // Banner Operativo Entregar (BGH: ZECO, ZECH, ZRE7, ZRE2)
@@ -742,7 +808,9 @@ function applySubOrderData(data, subOrder) {
     }
     operationalIconBox.innerHTML = iconHtml;
 
-    operationalTitle.textContent = cls.shortRef ? `${cls.label} (${cls.shortRef})` : (cls.label || 'Envío Entregar');
+    operationalTitle.textContent = cls.shortRef
+      ? `${cls.label} (${cls.shortRef})`
+      : cls.label || 'Envío Entregar';
     operationalCodeBadge.textContent = cls.code || 'BGH';
 
     // Referencia de texto auxiliar
@@ -758,12 +826,13 @@ function applySubOrderData(data, subOrder) {
     if (cls.pairedOrder && cls.pairedOrder.index !== undefined) {
       const paired = cls.pairedOrder;
       const targetLabel = paired.type === 'swap_pickup' ? 'Retiro' : 'Despacho';
-      const targetIdentifier = paired.shortRef || paired.remito || paired.referencia || `#${paired.idpedido}`;
+      const targetIdentifier =
+        paired.shortRef || paired.remito || paired.referencia || `#${paired.idpedido}`;
       operationalDescription.textContent = `${cls.description} Vinculado operativamente al ${targetLabel.toLowerCase()} ${targetIdentifier} (Remito ${paired.remito || 'S/N'}). Ambos deben coordinarse simultáneamente.`;
 
       operationalLinkedAction.classList.remove('hidden');
       goToLinkedLegText.textContent = `Ver ${targetLabel} (${targetIdentifier})`;
-      
+
       goToLinkedLegBtn.onclick = () => {
         if (data.allOrders && data.allOrders[paired.index]) {
           data.selectedSubOrderIndex = paired.index;
@@ -772,7 +841,13 @@ function applySubOrderData(data, subOrder) {
             [...subOrdersList.children].forEach((c, idx) => {
               c.classList.toggle('active', idx === paired.index);
             });
-            subOrdersList.children[paired.index].scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'nearest', inline: 'center' });
+            subOrdersList.children[paired.index].scrollIntoView({
+              behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches
+                ? 'auto'
+                : 'smooth',
+              block: 'nearest',
+              inline: 'center',
+            });
           }
         }
       };
@@ -784,21 +859,29 @@ function applySubOrderData(data, subOrder) {
     entregarOperationalBanner.classList.add('hidden');
   }
 
-  const guia = isSub ? (subOrder.remito || subOrder.idpedido) : (data.guiaNumero || data.summary.guiaNumero || 'Sin asignar');
+  const guia = isSub
+    ? subOrder.remito || subOrder.idpedido
+    : data.guiaNumero || data.summary.guiaNumero || 'Sin asignar';
   metaGuia.textContent = guia;
 
-  const remit = isSub ? (subOrder.empresa ? `Empresa ${subOrder.empresa}` : 'Entregar') : (data.summary.remitente || 'Distribución');
+  const remit = isSub
+    ? subOrder.empresa
+      ? `Empresa ${subOrder.empresa}`
+      : 'Entregar'
+    : data.summary.remitente || 'Distribución';
   metaRemitente.textContent = remit;
 
-  const serv = isSub ? [subOrder.servicio, subOrder.operacion].filter(Boolean).join(' • ') : (data.summary.servicio || 'Distribución Estándar');
+  const serv = isSub
+    ? [subOrder.servicio, subOrder.operacion].filter(Boolean).join(' • ')
+    : data.summary.servicio || 'Distribución Estándar';
   metaServicio.textContent = serv;
-  
-  const destName = isSub 
-    ? (subOrder.destinatario || '')
-    : (data.detail?.destinatario || data.summary?.clienteCodigo || '');
+
+  const destName = isSub
+    ? subOrder.destinatario || ''
+    : data.detail?.destinatario || data.summary?.clienteCodigo || '';
   const destAddr = isSub
-    ? (subOrder.direccion || '')
-    : (data.detail?.direccion || data.detail?.observaciones || '');
+    ? subOrder.direccion || ''
+    : data.detail?.direccion || data.detail?.observaciones || '';
 
   if (destName && destAddr && destName.trim() !== destAddr.trim()) {
     metaDestino.innerHTML = `
@@ -817,13 +900,13 @@ function applySubOrderData(data, subOrder) {
     metaCiclo.textContent = '';
   }
 
-  // --------------------------------------------------------------------------
-  // 4.3 LÓGICA ENTREGAR: Desglose de Productos y Conteo de Bultos Físicos
-  //     (Extracción recursiva de la grilla secundaria 'apl_grid_detalle_pedido')
-  // --------------------------------------------------------------------------
-  const products = (isSub ? subOrder.products : data.products) || (data.detail && data.detail.products) || [];
-  let bultosCount = (isSub ? subOrder.bultos : (data.bultos || (data.detail && data.detail.bultos))) || '';
-  
+  // Detalle de productos y cantidades.
+  // Los productos provienen de las tablas incluidas en la respuesta.
+  const products =
+    (isSub ? subOrder.products : data.products) || (data.detail && data.detail.products) || [];
+  let bultosCount =
+    (isSub ? subOrder.bultos : data.bultos || (data.detail && data.detail.bultos)) || '';
+
   if (!bultosCount && products.length > 0) {
     const sum = products.reduce((acc, p) => acc + (parseInt(p.bultos || p.cantidad, 10) || 0), 0);
     if (sum > 0) bultosCount = sum;
@@ -847,31 +930,41 @@ function applySubOrderData(data, subOrder) {
         let metrics = [];
         if (prod.peso) metrics.push(`${escapeHtml(prod.peso)} kg`);
         if (prod.volumen) metrics.push(`${escapeHtml(prod.volumen)} m³`);
-        const metricsStr = metrics.length > 0 
-          ? `<span class="font-mono-code text-xs text-slate-500 font-medium">${metrics.join(' • ')}</span>`
-          : '';
+        const metricsStr =
+          metrics.length > 0
+            ? `<span class="font-mono-code text-xs text-slate-500 font-medium">${metrics.join(' • ')}</span>`
+            : '';
 
-        item.className = 'flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3 rounded-xl bg-white border border-slate-200/90 shadow-2xs hover:border-slate-300 transition';
+        item.className =
+          'flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3 rounded-xl bg-white border border-slate-200/90 shadow-2xs hover:border-slate-300 transition';
         item.innerHTML = `
           <div class="flex items-start sm:items-center gap-2.5 min-w-0 flex-1">
             <div class="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg ${isMulti ? 'bg-amber-100 text-amber-950 border border-amber-300 font-extrabold shadow-2xs' : 'bg-slate-100 text-slate-800 border border-slate-200 font-bold'} text-xs" title="Cantidad de bultos de este producto">
               <i class="fa-solid fa-box ${isMulti ? 'text-amber-700' : 'text-slate-500'} text-[11px]"></i>
               <span>${escapeHtml(bultosLabel)}</span>
             </div>
-            ${prod.codigo ? `
+            ${
+              prod.codigo
+                ? `
               <span class="shrink-0 font-mono-code font-bold text-xs bg-slate-50 text-slate-700 px-2 py-0.5 rounded border border-slate-200 select-all" title="Código de producto">
                 ${escapeHtml(prod.codigo)}
               </span>
-            ` : ''}
+            `
+                : ''
+            }
             <span class="text-xs sm:text-sm font-semibold text-slate-800 leading-snug break-words">
               ${escapeHtml(prod.descripcion || 'Producto')}
             </span>
           </div>
-          ${metricsStr ? `
+          ${
+            metricsStr
+              ? `
             <div class="shrink-0 self-end sm:self-center ml-2">
               ${metricsStr}
             </div>
-          ` : ''}
+          `
+              : ''
+          }
         `;
         productsListContainer.appendChild(item);
       });
@@ -898,16 +991,15 @@ function applySubOrderData(data, subOrder) {
   }
 
   // Renderizar Movimientos
-  const movements = isSub ? (subOrder.movements || []) : (data.movements || []);
+  const movements = isSub ? subOrder.movements || [] : data.movements || [];
   movementsCountBadge.textContent = `${movements.length} eventos`;
 
   renderTimeline(movements, cat);
   renderTable(movements);
 }
 
-// --------------------------------------------------------------------------
 // 4.4 Cronología de Eventos (Timeline Vertical) y Tabla de Auditoría
-// --------------------------------------------------------------------------
+
 function renderTimeline(movements, statusCategory) {
   timelineFeed.innerHTML = '';
 
@@ -928,23 +1020,25 @@ function renderTimeline(movements, statusCategory) {
     const stepDiv = document.createElement('div');
     stepDiv.className = `timeline-step ${isLatest ? 'latest' : ''} ${statusCategory === 'delivered' ? 'delivered' : 'in-transit'}`;
 
-    const iconHtml = isLatest 
-      ? (statusCategory === 'delivered' ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-solid fa-truck-fast"></i>')
+    const iconHtml = isLatest
+      ? statusCategory === 'delivered'
+        ? '<i class="fa-solid fa-check"></i>'
+        : '<i class="fa-solid fa-truck-fast"></i>'
       : '<i class="fa-regular fa-circle-dot text-[8px]"></i>';
 
-    const phaseTag = m.phase 
-      ? `<span class="inline-block bg-slate-100 text-slate-700 text-[10px] font-semibold px-2 py-0.5 rounded-full mr-2">${escapeHtml(m.phase)}</span>` 
+    const phaseTag = m.phase
+      ? `<span class="inline-block bg-slate-100 text-slate-700 text-[10px] font-semibold px-2 py-0.5 rounded-full mr-2">${escapeHtml(m.phase)}</span>`
       : '';
 
-    const agencyTag = m.agency 
+    const agencyTag = m.agency
       ? `<span class="inline-flex items-center gap-1 text-[11px] text-slate-500 font-medium bg-slate-50 border border-slate-200/60 px-2 py-0.5 rounded-md mt-1.5"><i class="fa-solid fa-location-dot text-[9px] text-slate-400"></i> ${escapeHtml(m.agency)}</span>`
       : '';
 
-    const zoneTag = m.zone 
+    const zoneTag = m.zone
       ? `<span class="text-[10px] text-slate-400 font-mono-code ml-2">Zona ${escapeHtml(m.zone)}</span>`
       : '';
 
-    const descTag = m.description 
+    const descTag = m.description
       ? `<div class="text-[11px] text-slate-500 mt-1 italic">${escapeHtml(m.description)}</div>`
       : '';
 
@@ -998,15 +1092,15 @@ function renderTable(movements) {
       tr.className = 'latest-row';
     }
 
-    const phaseTag = m.phase 
-      ? `<span class="inline-block bg-slate-100 text-slate-700 text-[10px] font-semibold px-2 py-0.5 rounded mr-1.5">${escapeHtml(m.phase)}</span>` 
+    const phaseTag = m.phase
+      ? `<span class="inline-block bg-slate-100 text-slate-700 text-[10px] font-semibold px-2 py-0.5 rounded mr-1.5">${escapeHtml(m.phase)}</span>`
       : '';
 
-    const zoneTag = m.zone 
-      ? `<span class="text-[10px] text-slate-400 font-mono-code block mt-0.5">Zona: ${escapeHtml(m.zone)}</span>` 
+    const zoneTag = m.zone
+      ? `<span class="text-[10px] text-slate-400 font-mono-code block mt-0.5">Zona: ${escapeHtml(m.zone)}</span>`
       : '';
 
-    const descTag = m.description 
+    const descTag = m.description
       ? `<div class="text-[11px] text-slate-500 italic mt-0.5">${escapeHtml(m.description)}</div>`
       : '';
 
@@ -1027,9 +1121,8 @@ function renderTable(movements) {
   });
 }
 
-// ==========================================================================
 // Copiado Rápido & Toasts
-// ==========================================================================
+
 copyOrderBtn.addEventListener('click', async () => {
   const val = resultOrderTitle.textContent.trim();
   if (val && val !== '--') {
@@ -1047,7 +1140,12 @@ copyGuiaBtn.addEventListener('click', async () => {
 copySummaryBtn.addEventListener('click', async () => {
   if (!lastTrackedData) return;
   const d = lastTrackedData;
-  const carrierName = d.carrier === 'andreani' ? 'Correo Andreani' : (d.carrier === 'entregar' ? 'Entregar (BGH)' : 'Urbano Express');
+  const carrierName =
+    d.carrier === 'andreani'
+      ? 'Correo Andreani'
+      : d.carrier === 'entregar'
+        ? 'Entregar (BGH)'
+        : 'Urbano Express';
   const currentLink = officialLinkBtn?.href || d.officialUrl;
   const currentRef = resultOrderTitle?.textContent.trim() || d.order;
   const currentGuia = metaGuia?.textContent.trim() || d.guiaNumero || 'N/A';
@@ -1056,7 +1154,8 @@ copySummaryBtn.addEventListener('click', async () => {
   const currentDate = statusDateBadge?.textContent.replace(/[()]/g, '').trim() || '';
 
   let extraLines = '';
-  const activeSub = (d.allOrders && d.selectedSubOrderIndex !== undefined) ? d.allOrders[d.selectedSubOrderIndex] : d;
+  const activeSub =
+    d.allOrders && d.selectedSubOrderIndex !== undefined ? d.allOrders[d.selectedSubOrderIndex] : d;
 
   if (d.carrier === 'entregar') {
     const cls = activeSub.classification || d.classification;
@@ -1078,8 +1177,8 @@ copySummaryBtn.addEventListener('click', async () => {
 
   if (activeProducts.length > 0) {
     extraLines += `Bultos totales: ${activeBultos || 1}\nProductos (${activeProducts.length}):\n`;
-    activeProducts.forEach(p => {
-      extraLines += `  • ${p.codigo ? `[${p.codigo}] ` : ''}${p.descripcion || 'Producto'} (${p.bultos || 1} bulto${(p.bultos > 1) ? 's' : ''})\n`;
+    activeProducts.forEach((p) => {
+      extraLines += `  • ${p.codigo ? `[${p.codigo}] ` : ''}${p.descripcion || 'Producto'} (${p.bultos || 1} bulto${p.bultos > 1 ? 's' : ''})\n`;
     });
   } else if (activeBultos) {
     extraLines += `Bultos: ${activeBultos}\n`;
@@ -1119,12 +1218,11 @@ function showToast(message, type = 'success') {
   }, 2500);
 }
 
-// ==========================================================================
 // Manejo de Errores
-// ==========================================================================
+
 function showError(msg, officialUrl, needSession = false) {
   announce(msg);
-  orderInput.setAttribute('aria-invalid','true');
+  orderInput.setAttribute('aria-invalid', 'true');
   if (needSession) {
     errorMessage.innerHTML = `
       <span>${escapeHtml(msg)}</span>
@@ -1170,13 +1268,10 @@ function showError(msg, officialUrl, needSession = false) {
   errorBox.classList.remove('hidden');
 }
 
-// ==========================================================================
-// SECCIÓN 5: GESTIÓN DE MODALES DEL SISTEMA
-// ==========================================================================
+// Gestión de modales del sistema.
 
-// --------------------------------------------------------------------------
 // 5.1 Modal de Sesión Activa de Entregar (PHPSESSID)
-// --------------------------------------------------------------------------
+
 async function openSessionModal() {
   if (!sessionModal) return;
   openDialog(sessionModal);
@@ -1187,11 +1282,14 @@ async function openSessionModal() {
     const data = await res.json();
     if (data.success) {
       if (data.hasCookie && data.lastPingStatus === true) {
-        sessionStatusMsg.className = 'p-2.5 rounded-lg text-xs font-medium bg-emerald-50 text-emerald-800 border border-emerald-200';
+        sessionStatusMsg.className =
+          'p-2.5 rounded-lg text-xs font-medium bg-emerald-50 text-emerald-800 border border-emerald-200';
         sessionStatusMsg.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-600 mr-1.5"></i> Sesión actualmente activa en el servidor. ${data.lastPing ? '(Último ping: ' + new Date(data.lastPing).toLocaleTimeString() + ')' : ''}`;
       } else {
-        sessionStatusMsg.className = 'p-2.5 rounded-lg text-xs font-medium bg-amber-50 text-amber-800 border border-amber-200';
-        sessionStatusMsg.innerHTML = '<i class="fa-solid fa-triangle-exclamation text-amber-600 mr-1.5"></i> No hay una sesión verificada actualmente. Guardá una cookie para comprobarla.';
+        sessionStatusMsg.className =
+          'p-2.5 rounded-lg text-xs font-medium bg-amber-50 text-amber-800 border border-amber-200';
+        sessionStatusMsg.innerHTML =
+          '<i class="fa-solid fa-triangle-exclamation text-amber-600 mr-1.5"></i> No hay una sesión verificada actualmente. Guardá una cookie para comprobarla.';
       }
     }
   } catch (e) {
@@ -1211,13 +1309,14 @@ async function handleSaveSessionCookie() {
   }
 
   saveSessionCookieBtn.disabled = true;
-  saveSessionCookieBtn.innerHTML = '<i class="fa-solid fa-circle-notch animate-spin"></i> Verificando...';
+  saveSessionCookieBtn.innerHTML =
+    '<i class="fa-solid fa-circle-notch animate-spin"></i> Verificando...';
 
   try {
     const res = await fetch('/api/entregar/session', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ cookie })
+      body: JSON.stringify({ cookie }),
     });
     const data = await res.json();
 
@@ -1236,9 +1335,8 @@ async function handleSaveSessionCookie() {
   }
 }
 
-// --------------------------------------------------------------------------
-// 5.2 Modal de Presentación y Arquitectura Técnica del Sistema
-// --------------------------------------------------------------------------
+// Ayuda sobre el seguimiento
+
 function openArchitectureModal() {
   openDialog(architectureModal);
 }
@@ -1249,8 +1347,10 @@ function closeArchitectureModal() {
 
 if (architectureBtn) architectureBtn.addEventListener('click', openArchitectureModal);
 if (footerArchitectureBtn) footerArchitectureBtn.addEventListener('click', openArchitectureModal);
-if (closeArchitectureModalBtn) closeArchitectureModalBtn.addEventListener('click', closeArchitectureModal);
-if (okArchitectureModalBtn) okArchitectureModalBtn.addEventListener('click', closeArchitectureModal);
+if (closeArchitectureModalBtn)
+  closeArchitectureModalBtn.addEventListener('click', closeArchitectureModal);
+if (okArchitectureModalBtn)
+  okArchitectureModalBtn.addEventListener('click', closeArchitectureModal);
 
 if (architectureModal) {
   architectureModal.addEventListener('click', (e) => {
@@ -1266,16 +1366,16 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-// ==========================================================================
-// SECCIÓN 6: HISTORIAL DE BÚSQUEDAS RECIENTES
-// ==========================================================================
-// ==========================================================================
+// Historial de búsquedas recientes.
+
 function addToRecent(order, carrier = 'urbano') {
   if (!order) return;
   const item = { order, carrier };
   recentSearches = [
     item,
-    ...recentSearches.filter(s => (typeof s === 'string' ? s : s.order).toLowerCase() !== order.toLowerCase())
+    ...recentSearches.filter(
+      (s) => (typeof s === 'string' ? s : s.order).toLowerCase() !== order.toLowerCase()
+    ),
   ].slice(0, 8);
 
   safeStorage.setItem('urbano_recent_searches', JSON.stringify(recentSearches));
@@ -1284,22 +1384,27 @@ function addToRecent(order, carrier = 'urbano') {
 
 function renderRecentSearches() {
   if (recentSearches.length === 0) {
-    recentTags.innerHTML = '<span class="text-slate-400 italic">No hay pedidos recientes en este dispositivo.</span>';
+    recentTags.innerHTML =
+      '<span class="text-slate-400 italic">No hay pedidos recientes en este dispositivo.</span>';
     return;
   }
 
   recentTags.innerHTML = '';
-  recentSearches.forEach(rawItem => {
+  recentSearches.forEach((rawItem) => {
     const item = typeof rawItem === 'string' ? { order: rawItem, carrier: 'urbano' } : rawItem;
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = 'bg-slate-100 hover:bg-slate-200 text-slate-800 font-mono-code text-xs px-2.5 py-1.5 rounded-lg transition flex items-center gap-1.5 cursor-pointer border border-slate-200/60';
-    
-    let carrierBadge = '<span class="text-[9px] font-bold text-red-700 bg-red-100/80 px-1 py-0.5 rounded">URB</span>';
+    btn.className =
+      'bg-slate-100 hover:bg-slate-200 text-slate-800 font-mono-code text-xs px-2.5 py-1.5 rounded-lg transition flex items-center gap-1.5 cursor-pointer border border-slate-200/60';
+
+    let carrierBadge =
+      '<span class="text-[9px] font-bold text-red-700 bg-red-100/80 px-1 py-0.5 rounded">URB</span>';
     if (item.carrier === 'andreani') {
-      carrierBadge = '<span class="text-[9px] font-bold text-blue-700 bg-blue-100/80 px-1 py-0.5 rounded">AND</span>';
+      carrierBadge =
+        '<span class="text-[9px] font-bold text-blue-700 bg-blue-100/80 px-1 py-0.5 rounded">AND</span>';
     } else if (item.carrier === 'entregar') {
-      carrierBadge = '<span class="text-[9px] font-bold text-emerald-700 bg-emerald-100/80 px-1 py-0.5 rounded">ENT</span>';
+      carrierBadge =
+        '<span class="text-[9px] font-bold text-emerald-700 bg-emerald-100/80 px-1 py-0.5 rounded">ENT</span>';
     }
 
     btn.innerHTML = `${carrierBadge}<span>${escapeHtml(item.order)}</span>`;
@@ -1320,9 +1425,8 @@ clearHistoryBtn.addEventListener('click', () => {
   showToast('Historial limpiado', 'info');
 });
 
-// ==========================================================================
-// SECCIÓN 7: CONSULTA MASIVA POR LOTE (BATCH TRACKING)
-// ==========================================================================
+// Consulta masiva por lote (batch tracking).
+
 if (batchClearBtn) {
   batchClearBtn.addEventListener('click', () => {
     batchTextarea.value = '';
@@ -1338,9 +1442,15 @@ batchSubmitBtn.addEventListener('click', async () => {
     return;
   }
 
-  const orders = text.split(/[\n,;]+/).map(s => s.trim()).filter(Boolean);
+  const orders = text
+    .split(/[\n,;]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
   if (orders.length === 0) return;
-  if (orders.length > 20 || orders.some(order => order.length > 120)) { showToast('Ingresá hasta 20 códigos, de hasta 120 caracteres cada uno.', 'error'); return; }
+  if (orders.length > 20 || orders.some((order) => order.length > 120)) {
+    showToast('Ingresá hasta 20 códigos, de hasta 120 caracteres cada uno.', 'error');
+    return;
+  }
 
   batchSubmitBtn.disabled = true;
   batchSubmitBtn.classList.add('opacity-50');
@@ -1350,14 +1460,18 @@ batchSubmitBtn.addEventListener('click', async () => {
 
   const controller = new AbortController();
   const deadline = setTimeout(() => controller.abort(), 210000);
-  batchResultsBox.setAttribute('aria-busy','true');
+  batchResultsBox.setAttribute('aria-busy', 'true');
   announce(`Consultando ${orders.length} pedidos.`);
   try {
     const res = await fetch('/api/track-batch', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       signal: controller.signal,
-      body: JSON.stringify({ orders, shipper: currentShipper, carrier: document.getElementById('batchCarrier').value })
+      body: JSON.stringify({
+        orders,
+        shipper: currentShipper,
+        carrier: document.getElementById('batchCarrier').value,
+      }),
     });
     const data = await res.json();
 
@@ -1372,10 +1486,11 @@ batchSubmitBtn.addEventListener('click', async () => {
     batchTableBody.innerHTML = `<tr><td colspan="6" class="py-4 text-center text-red-600">Error: ${escapeHtml(err.message)}</td></tr>`;
   } finally {
     clearTimeout(deadline);
-    batchResultsBox.setAttribute('aria-busy','false');
+    batchResultsBox.setAttribute('aria-busy', 'false');
     batchSubmitBtn.disabled = false;
     batchSubmitBtn.classList.remove('opacity-50');
-    batchSubmitBtn.innerHTML = '<i class="fa-solid fa-play text-[10px]"></i> Consultar lote de pedidos';
+    batchSubmitBtn.innerHTML =
+      '<i class="fa-solid fa-play text-[10px]"></i> Consultar lote de pedidos';
   }
 });
 
@@ -1383,26 +1498,31 @@ function renderBatchResults(results) {
   batchTableBody.innerHTML = '';
   let delivered = 0;
 
-  results.forEach(item => {
+  results.forEach((item) => {
     if (item.success && item.statusCategory === 'delivered') delivered++;
 
     const tr = document.createElement('tr');
     const badgeColor = item.success
-      ? (item.statusCategory === 'delivered' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-sky-50 text-sky-800 border-sky-200')
+      ? item.statusCategory === 'delivered'
+        ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+        : 'bg-sky-50 text-sky-800 border-sky-200'
       : 'bg-red-50 text-red-800 border-red-200';
 
-    const badge = item.success 
+    const badge = item.success
       ? `<span class="text-xs font-semibold px-2.5 py-0.5 rounded-full border ${badgeColor}">${escapeHtml(item.statusLabel || item.summary?.estadoRaw || 'En proceso')}</span>`
       : `<span class="text-xs font-semibold px-2.5 py-0.5 rounded-full border bg-red-50 text-red-800 border-red-200">${escapeHtml(item.message || 'Consulta no completada')}</span>`;
 
     let carrierName = 'Urbano';
-    let carrierTag = '<span class="text-[10px] font-bold text-red-700 bg-red-50 px-1.5 py-0.5 rounded border border-red-200">Urbano</span>';
+    let carrierTag =
+      '<span class="text-[10px] font-bold text-red-700 bg-red-50 px-1.5 py-0.5 rounded border border-red-200">Urbano</span>';
     if (item.carrier === 'andreani') {
       carrierName = 'Andreani';
-      carrierTag = '<span class="text-[10px] font-bold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200">Andreani</span>';
+      carrierTag =
+        '<span class="text-[10px] font-bold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200">Andreani</span>';
     } else if (item.carrier === 'entregar') {
       carrierName = 'Entregar';
-      carrierTag = '<span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">Entregar</span>';
+      carrierTag =
+        '<span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">Entregar</span>';
     }
 
     tr.innerHTML = `
@@ -1440,27 +1560,45 @@ function openDialog(modal) {
   for (const other of dialogStates.keys()) closeDialog(other);
   const state = { focus: document.activeElement, inert: [] };
   for (const node of document.body.children) {
-    if (node !== modal && node.id !== 'liveStatus') { state.inert.push([node,node.inert]); node.inert = true; }
+    if (node !== modal && node.id !== 'liveStatus') {
+      state.inert.push([node, node.inert]);
+      node.inert = true;
+    }
   }
   dialogStates.set(modal, state);
-  modal.classList.add('open'); modal.removeAttribute('aria-hidden');
+  modal.classList.add('open');
+  modal.removeAttribute('aria-hidden');
   (modal.querySelector('button, textarea, input, [tabindex]') || modal).focus();
 }
 function closeDialog(modal) {
   if (!modal || !dialogStates.has(modal)) return;
-  const state = dialogStates.get(modal); dialogStates.delete(modal);
-  modal.classList.remove('open'); modal.setAttribute('aria-hidden','true');
+  const state = dialogStates.get(modal);
+  dialogStates.delete(modal);
+  modal.classList.remove('open');
+  modal.setAttribute('aria-hidden', 'true');
   for (const [node, wasInert] of state.inert) node.inert = wasInert;
   if (state.focus?.isConnected) state.focus.focus();
 }
-document.addEventListener('keydown', event => {
+document.addEventListener('keydown', (event) => {
   const modal = [...dialogStates.keys()][0];
   if (!modal || event.key !== 'Tab') return;
-  const elements = [...modal.querySelectorAll('button, input, textarea, select, a[href], [tabindex="0"]')].filter(node => !node.disabled && node.getClientRects().length);
-  const first = elements[0], last = elements[elements.length - 1];
-  if (!first) { event.preventDefault(); modal.focus(); return; }
-  if (event.shiftKey && (document.activeElement === first || document.activeElement === modal)) { event.preventDefault(); last.focus(); }
-  else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+  const elements = [
+    ...modal.querySelectorAll('button, input, textarea, select, a[href], [tabindex="0"]'),
+  ].filter((node) => !node.disabled && node.getClientRects().length);
+  const first = elements[0],
+    last = elements[elements.length - 1];
+  if (!first) {
+    event.preventDefault();
+    modal.focus();
+    return;
+  }
+  if (event.shiftKey && (document.activeElement === first || document.activeElement === modal)) {
+    event.preventDefault();
+    last.focus();
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault();
+    first.focus();
+  }
 });
 
 init();
