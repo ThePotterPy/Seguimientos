@@ -51,6 +51,8 @@ Para integrar Urbano y Entregar, implementé la lectura del HTML de sus portales
 
 Para esta versión decidí mantener las consultas sin inicio de sesión y guardar el historial reciente en cada navegador, sin un historial central de envíos. La API tampoco requiere autenticación; sus rutas están disponibles para cualquier cliente que pueda acceder al servidor, dentro de los límites configurados.
 
+[Arquitectura y explicación completa del funcionamiento](docs/arquitectura.md).
+
 [Funcionamiento y límites por transportista](docs/integraciones.md).
 
 ## Estructura
