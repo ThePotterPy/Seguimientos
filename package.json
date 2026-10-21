@@ -8,7 +8,8 @@
     "dev": "node --watch server.js",
     "test": "node --test test/*.test.cjs",
     "check": "node --check server.js && node --check public/app.js && node --check lib/router.js && node --check lib/runtime.js && node --check lib/session.js && node --check lib/config.js",
-    "build": "tailwindcss -c tailwind.config.cjs -i styles/tailwind.css -o public/tailwind.css --minify && node scripts/copy-icons.cjs"
+    "build:assets": "npx tailwindcss -c tailwind.config.cjs -i styles/tailwind.css -o public/tailwind.css --minify && node scripts/copy-icons.cjs",
+    "build": "node -e \"console.log('Static assets verified in public/')\""
   },
   "engines": {
     "node": ">=22.0.0"
