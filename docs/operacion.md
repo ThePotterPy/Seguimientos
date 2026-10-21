@@ -26,7 +26,7 @@ El servidor comprueba la sesión cada diez minutos. Esa comprobación no garanti
 
 ## API
 
-La aplicación no implementa autenticación de usuarios. Cualquier cliente que alcance el servidor puede utilizar sus rutas, sujeto a los límites configurados.
+Para esta versión decidí mantener la API sin autenticación de usuarios. Cualquier cliente que alcance el servidor puede utilizar sus rutas, sujeto a los límites configurados.
 
 | Método | Ruta | Uso |
 | --- | --- | --- |

@@ -1,6 +1,6 @@
 # Seguimiento BGH
 
-Aplicación web para consultar envíos de Urbano, Andreani y Entregar desde una misma interfaz.
+Desarrollé esta aplicación para consultar envíos de Urbano, Andreani y Entregar desde una misma interfaz. Mi objetivo fue reunir la información de los tres transportistas y facilitar el seguimiento de pedidos.
 
 ## Funciones
 
@@ -12,7 +12,7 @@ Aplicación web para consultar envíos de Urbano, Andreani y Entregar desde una 
 
 ## Tecnología
 
-Node.js 22 o posterior, HTML, CSS y JavaScript. El servidor utiliza módulos nativos de Node.js. Tailwind CSS y Font Awesome se usan durante el desarrollo para generar los recursos estáticos incluidos en `public/`.
+Elegí Node.js 22 o posterior para el servidor y HTML, CSS y JavaScript para la interfaz. Utilicé módulos nativos de Node.js en el servidor, y Tailwind CSS y Font Awesome para generar los recursos estáticos incluidos en `public/`.
 
 ## Inicio local
 
@@ -47,9 +47,9 @@ Las variables disponibles están en `.env.example`. La configuración local se c
 
 ## Integraciones y alcance
 
-Urbano y Entregar se consultan a partir del HTML de sus portales. Andreani devuelve datos JSON mediante su API. El detalle disponible depende de cada proveedor y los cambios en sus respuestas pueden requerir ajustes del adaptador.
+Para integrar Urbano y Entregar, implementé la lectura del HTML de sus portales. Para Andreani, utilicé las respuestas JSON de su API. El detalle disponible depende de cada proveedor y los cambios en sus respuestas pueden requerir ajustes del adaptador.
 
-La aplicación no implementa inicio de sesión para sus usuarios ni guarda un historial central de envíos. El historial reciente permanece en cada navegador.
+Para esta versión decidí mantener las consultas sin inicio de sesión y guardar el historial reciente en cada navegador, sin un historial central de envíos. La API tampoco requiere autenticación; sus rutas están disponibles para cualquier cliente que pueda acceder al servidor, dentro de los límites configurados.
 
 [Funcionamiento y límites por transportista](docs/integraciones.md).
 
