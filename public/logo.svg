@@ -13,7 +13,7 @@
   <!-- Cinta de embalaje superior -->
   <polygon points="46,24 54,28 54,48 46,44" fill="#FEE2E2" opacity="0.85"/>
   
-  <!-- Signo de interrogación estilizado en la cara lateral (porque no tiene nombre) -->
+  <!-- Indicador de consulta -->
   <path d="M60 48 C60 44 67 44 67 48 C67 51 63 52 63 55" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" fill="none"/>
   <circle cx="63" cy="59.5" r="1.5" fill="#FFFFFF"/>
 </svg>

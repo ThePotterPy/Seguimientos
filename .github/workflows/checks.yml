@@ -12,5 +12,6 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: npm run check
       - run: npm test
+      - run: npm run build:assets
       - run: npm run build
       - run: git diff --exit-code -- public/tailwind.css public/vendor
