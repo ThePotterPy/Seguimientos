@@ -326,10 +326,10 @@ async function trackAndreani(rawOrder) {
 
   try {
     const res = await fetchAndreani(encrypted);
-    if (res.statusCode !== 200 && res.statusCode !== 404) {
+    if (res.statusCode !== 200 && res.statusCode !== 404 && res.statusCode !== 206) {
       return { success: false, carrier: 'andreani', order: code, errorCode: 'UPSTREAM_UNAVAILABLE', message: `Andreani no pudo responder la consulta (HTTP ${res.statusCode}). Reintentá más tarde.` };
     }
-    if (res.statusCode === 404 || !res.body) {
+    if (res.statusCode === 404 || res.statusCode === 206 || !res.body || res.body.trim() === 'null') {
       return {
         success: false,
         carrier: 'andreani',

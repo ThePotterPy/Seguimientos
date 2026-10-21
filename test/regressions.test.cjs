@@ -154,6 +154,12 @@ test('errores externos no se presentan como pedidos inexistentes',async()=>{
   const app=loadAdapters({status:503});
   const result=await app.trackAndreani('123456789012345');assert.equal(result.errorCode,'UPSTREAM_UNAVAILABLE');assert.doesNotMatch(result.message,/No se encontró/);
 });
+test('Andreani responde HTTP 206 cuando el envio no existe y se interpreta como no encontrado',async()=>{
+  const app=loadAdapters({status:206,body:'null'});
+  const result=await app.trackAndreani('2000018896871244');
+  assert.equal(result.success,false);
+  assert.match(result.message,/No se encontró ningún envío/);
+});
 test('limpieza HTML quita etiquetas codificadas antes del uso como texto',()=>{
   assert.equal(loadAdapters().cleanHtml('&lt;b&gt;TEST&lt;/b&gt;'),'TEST');
 });
