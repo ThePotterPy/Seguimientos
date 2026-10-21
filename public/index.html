@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
@@ -403,9 +403,9 @@
                       class="hidden font-mono-code text-[11px] text-slate-600 bg-slate-100 px-2 py-0.5 rounded"
                     ></span>
                   </div>
-                  <p id="operationalDescription" class="text-slate-600 text-xs leading-relaxed"
-                    >--</p
-                  >
+                  <p id="operationalDescription" class="text-slate-600 text-xs leading-relaxed">
+                    --
+                  </p>
                 </div>
               </div>
 
@@ -491,13 +491,15 @@
                   <div
                     id="metaDestino"
                     class="text-xs sm:text-sm font-semibold text-slate-800 break-words whitespace-normal leading-snug"
-                    >--</div
                   >
+                    --
+                  </div>
                   <div
                     id="metaServicio"
                     class="text-[11px] text-slate-500 break-words whitespace-normal leading-normal mt-0.5"
-                    >--</div
                   >
+                    --
+                  </div>
                 </div>
               </div>
             </div>
@@ -515,12 +517,12 @@
                     <i class="fa-solid fa-boxes-packing"></i>
                   </div>
                   <div>
-                    <h4 class="text-xs sm:text-sm font-bold text-slate-900 leading-tight"
-                      >Productos en este envío</h4
-                    >
-                    <p class="text-[11px] text-slate-500"
-                      >Cantidad y código de cada bulto registrado</p
-                    >
+                    <h4 class="text-xs sm:text-sm font-bold text-slate-900 leading-tight">
+                      Productos en este envío
+                    </h4>
+                    <p class="text-[11px] text-slate-500">
+                      Cantidad y código de cada bulto registrado
+                    </p>
                   </div>
                 </div>
 
@@ -665,9 +667,9 @@
           <label for="batchTextarea" class="block text-xs font-bold mb-1"
             >Códigos de pedidos o guías</label
           >
-          <p id="batchHelp" class="text-xs text-slate-600 mb-2"
-            >Hasta 20 códigos por lote. No se descartarán pedidos sin avisarte.</p
-          >
+          <p id="batchHelp" class="text-xs text-slate-600 mb-2">
+            Hasta 20 códigos por lote. No se descartarán pedidos sin avisarte.
+          </p>
           <textarea
             id="batchTextarea"
             aria-describedby="batchHelp"
@@ -782,9 +784,13 @@
         </div>
 
         <div class="mt-5 flex items-center justify-end gap-2.5">
-          <button id="cancelSessionModalBtn" type="button" class="btn-secondary px-3 py-1.5 text-xs"
-            >Cerrar</button
+          <button
+            id="cancelSessionModalBtn"
+            type="button"
+            class="btn-secondary px-3 py-1.5 text-xs"
           >
+            Cerrar
+          </button>
           <button
             id="saveSessionCookieBtn"
             type="button"
@@ -802,7 +808,7 @@
       class="modal-overlay"
       role="dialog"
       aria-modal="true"
-      aria-label="Cómo funciona el seguimiento"
+      aria-label="Arquitectura técnica y funcionamiento"
       aria-hidden="true"
       tabindex="-1"
     >
@@ -826,7 +832,9 @@
                   Cómo funciona
                 </span>
               </div>
-              <p class="text-xs text-slate-500">Origen de los datos y alcance de cada consulta</p>
+              <p class="text-xs text-slate-500">
+                Arquitectura técnica, origen de los datos y limitaciones
+              </p>
             </div>
           </div>
           <button
@@ -848,9 +856,19 @@
               <span>Seguimiento de envíos y cambios</span>
             </div>
             <p class="text-slate-600 leading-relaxed text-xs">
-              El portal reúne consultas de Urbano, Andreani y Entregar. La ficha muestra la guía, el
-              estado y los movimientos que informa cada transportista. En Entregar también
-              interpreta referencias de cambios y devoluciones.
+              Desarrollé este portal para reunir el seguimiento de Urbano, Andreani y Entregar en
+              una misma ficha. Al ingresar un código, el navegador consulta mi servidor Node.js; el
+              servidor valida la solicitud, consulta al transportista y transforma la respuesta en
+              un formato común: guía, estado, destino y movimientos disponibles.
+            </p>
+            <p class="text-slate-600 leading-relaxed text-xs">
+              El recorrido es:
+              <strong
+                >navegador → API del proyecto → integración del transportista → ficha de
+                seguimiento</strong
+              >. Las credenciales se utilizan en el servidor. Los datos se solicitan al consultar;
+              no tengo una base central de envíos ni recibo actualizaciones automáticas de las
+              logísticas.
             </p>
           </div>
 
@@ -881,23 +899,30 @@
                   </div>
                   <div class="space-y-2 text-[11px] text-slate-600 leading-relaxed">
                     <p>
-                      <strong>Cuenta de despacho:</strong> Opera con la cuenta consolidada BGH
+                      <strong>Preparación:</strong> Normalizo el pedido y agrego la cuenta de
+                      despacho BGH
                       <code
                         class="font-mono bg-white px-1 py-0.5 rounded border border-slate-200 font-bold text-slate-800"
                         >004185</code
                       >.
                     </p>
                     <p>
-                      <strong>Consulta del envío:</strong> Obtiene el resumen del portal de Urbano y
-                      solicita el detalle al controlador
+                      <strong>Origen:</strong> Consulto el portal de seguimiento, leo un resumen
+                      JSON incluido dentro del HTML y envío una segunda solicitud para obtener el
+                      detalle mediante
                       <code class="text-[10px] bg-white px-1 rounded border border-slate-200"
                         >especifica_controller.php</code
                       >.
                     </p>
                     <p>
-                      <strong>Datos disponibles:</strong> Guía, estado, fecha y movimientos
-                      incluidos en la respuesta. Si falla la consulta del detalle, puede quedar
-                      disponible solo el resumen.
+                      <strong>Datos:</strong> Extraigo guía, estado y fecha del resumen; dirección,
+                      servicio y movimientos del detalle, cuando están disponibles.
+                    </p>
+                    <p>
+                      <strong>Limitaciones:</strong> Esta integración lee HTML, aunque el dominio se
+                      llame «apis». Si cambia la estructura del portal, debo adaptar la lectura. Si
+                      falla el detalle, puede mostrarse solo el resumen. No descargo firmas,
+                      imágenes ni comprobantes y no garantizo un desglose por SKU.
                     </p>
                   </div>
                 </div>
@@ -915,26 +940,34 @@
                     </span>
                     <span
                       class="text-[10px] font-semibold text-blue-700 bg-blue-100/60 px-1.5 py-0.5 rounded border border-blue-200"
-                      >API AES-256</span
+                      >Servicio JSON</span
                     >
                   </div>
                   <div class="space-y-2 text-[11px] text-slate-600 leading-relaxed">
                     <p>
-                      <strong>Consulta a la API:</strong> Envía el código a
+                      <strong>Origen:</strong> Envío el código ingresado como
+                      <code class="text-[10px] bg-white px-1 rounded border border-slate-200"
+                        >numeroAndreani</code
+                      >
+                      al servicio
                       <code class="text-[10px] bg-white px-1 rounded border border-slate-200"
                         >tracking-api.andreani.com</code
                       >
-                      y lee su respuesta JSON.
+                      y leo su respuesta JSON. Extraigo guía, estado, destino y eventos, que ordeno
+                      por fecha.
                     </p>
                     <p>
-                      <strong>Formato de la consulta:</strong> Cifra la solicitud con
-                      <strong>AES-256-CBC</strong> y la configuración privada del servidor. La
-                      conexión utiliza HTTPS.
+                      <strong>Acceso:</strong> Cifro la solicitud con <strong>AES-256-CBC</strong>
+                      y envío la autorización configurada en el servidor mediante HTTPS. La
+                      respuesta se interpreta como JSON; no se descifra con AES.
                     </p>
                     <p>
-                      <strong>Identificador de búsqueda:</strong> Envía el código ingresado al
-                      proveedor. La aceptación de una referencia de compra depende de la API. La
-                      aplicación no realiza una conversión separada a número de guía.
+                      <strong>Limitaciones:</strong> No convierto referencias de compra ni números
+                      de Mercado Libre a guías mediante otra consulta. Su aceptación depende del
+                      servicio. La descripción proviene del contrato y los bultos se muestran como
+                      uno por defecto: no confirman el producto ni la cantidad física de paquetes.
+                      El acceso también depende de que el proveedor mantenga válidos el servicio, la
+                      autorización y el formato de la solicitud.
                     </p>
                   </div>
                 </div>
@@ -957,22 +990,25 @@
                   </div>
                   <div class="space-y-2 text-[11px] text-slate-600 leading-relaxed">
                     <p>
-                      <strong>Acceso al portal:</strong> Consulta la grilla de pedidos de Scriptcase
-                      en
+                      <strong>Origen:</strong> Reutilizo una cookie de sesión vigente y envío el
+                      código al buscador de la grilla de pedidos de Scriptcase en
                       <code class="text-[10px] bg-white px-1 rounded border border-slate-200"
                         >svr.entregar.net.ar</code
                       >
-                      con una cookie de sesión vigente.
+                      y leo los campos, eventos y productos incluidos en el HTML devuelto. No
+                      automatizo el inicio de sesión con usuario y contraseña.
                     </p>
                     <p>
-                      <strong>Verificación de sesión:</strong> Comprueba la sesión cada diez
-                      minutos. El proveedor puede exigir una renovación aunque la comprobación
-                      periódica esté activa.
+                      <strong>Sesión:</strong> La compruebo cada diez minutos. Si vence, debo
+                      renovarla; esa comprobación no garantiza que permanezca activa. Antes de
+                      guardar una nueva cookie, verifico que permita acceder al portal.
                     </p>
                     <p>
-                      <strong>Detalle de productos:</strong> Lee las tablas de productos incluidas
-                      en la respuesta HTML. La disponibilidad del detalle depende del portal y la
-                      cantidad de producto no confirma por sí sola los bultos físicos.
+                      <strong>Limitaciones:</strong> No recorro páginas adicionales ni detalles
+                      cargados por separado. El primer resultado es el principal y las demás
+                      coincidencias se muestran como tramos; la búsqueda puede ser amplia y no
+                      compruebo otra vez la coincidencia exacta. El contexto de Scriptcase puede
+                      cambiar. Las cantidades de producto no confirman los bultos físicos.
                     </p>
                   </div>
                 </div>
@@ -987,8 +1023,9 @@
               <span>Cambios y devoluciones en Entregar</span>
             </div>
             <p class="text-xs text-slate-600 leading-relaxed">
-              En el sistema de Entregar, cada movimiento logístico se categoriza mediante prefijos
-              de referencia específicos:
+              Interpreto los prefijos de referencia de Entregar para distinguir la entrega original,
+              el despacho de reemplazo y el retiro del producto. Son reglas del proyecto sobre la
+              información recibida, no una consulta a una base central de cambios:
             </p>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
@@ -1028,10 +1065,11 @@
                   >
                 </div>
                 <p class="text-[11px] text-slate-600 leading-relaxed">
-                  La aplicación interpreta <strong class="text-blue-800">ZECH</strong> como despacho
-                  por cambio y <strong class="text-emerald-800">ZRE7</strong> como retiro por
-                  cambio. Vincula ambos tramos cuando el campo auxiliar 2 contiene una referencia
-                  exacta y no hay contradicciones ni candidatos ambiguos.
+                  Interpreto <strong class="text-blue-800">ZECH</strong> como despacho por cambio y
+                  <strong class="text-emerald-800">ZRE7</strong> como retiro por cambio. Vinculo
+                  ambos tramos cuando el campo auxiliar 2 contiene una referencia exacta y no hay
+                  contradicciones ni candidatos ambiguos entre los pedidos recibidos. Si falta el
+                  otro tramo en la respuesta, no puedo confirmar el vínculo.
                 </p>
               </div>
             </div>
@@ -1053,21 +1091,22 @@
                   <span>Servidor Node.js</span>
                 </div>
                 <p class="text-slate-600 text-[11px] leading-relaxed">
-                  El servidor utiliza módulos nativos de Node.js. Tailwind CSS y Font Awesome son
-                  dependencias de desarrollo para generar los archivos estáticos que recibe el
-                  navegador.
+                  Elegí Node.js 22 o posterior con módulos nativos para servir la página y consultar
+                  a los proveedores. Organicé las rutas, validaciones, conexiones y sesión en lib/;
+                  los adaptadores siguen en server.js. No utilizo una base de datos.
                 </p>
               </div>
 
               <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
                 <div class="font-bold text-slate-900 flex items-center gap-2">
                   <i class="fa-solid fa-shield-halved text-blue-600 text-base"></i>
-                  <span>Comunicación con Andreani</span>
+                  <span>Consultas por lote y límites</span>
                 </div>
                 <p class="text-slate-600 text-[11px] leading-relaxed">
-                  La solicitud de Andreani usa <strong>AES-256-CBC</strong>. El servidor mantiene
-                  los accesos en configuración privada y aplica límites de tiempo a las consultas
-                  HTTPS.
+                  Admito hasta 20 códigos por lote y proceso hasta tres tareas a la vez. Entregar se
+                  consulta de a una por su sesión compartida. Cada consulta iniciada tiene un máximo
+                  de 25 segundos; también limito tamaño de respuestas y frecuencia de consultas. El
+                  lote reúne consultas individuales, no una API masiva del proveedor.
                 </p>
               </div>
 
@@ -1077,23 +1116,73 @@
                   <span>Interfaz web</span>
                 </div>
                 <p class="text-slate-600 text-[11px] leading-relaxed">
-                  La interfaz usa HTML, CSS y JavaScript. Muestra los resultados sin recargar la
-                  página y guarda las búsquedas recientes en el navegador del usuario.
+                  Utilicé HTML, CSS y JavaScript para mostrar resultados sin recargar la página.
+                  Tailwind CSS y Font Awesome generan los estilos e iconos locales. Guardo hasta
+                  ocho búsquedas recientes en el navegador; ese historial no es compartido ni
+                  actualiza los estados por sí solo.
                 </p>
               </div>
 
               <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
                 <div class="font-bold text-slate-900 flex items-center gap-2">
                   <i class="fa-solid fa-shuffle text-purple-600 text-base"></i>
-                  <span>Consulta en otro transportista</span>
+                  <span>Selección y estados comunes</span>
                 </div>
                 <p class="text-slate-600 text-[11px] leading-relaxed">
-                  Permite consultar la misma referencia en otro transportista desde la ficha o desde
-                  un mensaje de error. La selección explícita del operador determina a qué proveedor
-                  se envía la consulta.
+                  Sugiero el transportista por el formato del código y permito elegirlo o consultar
+                  en otro. La detección no confirma dónde está un pedido ni busca en los tres a la
+                  vez. Unifico estados para compararlos: «NO ENTREGADO» es incidencia; en Entregar,
+                  «RECIBIDO DC» es depósito y «RENDIDO» es cierre administrativo, no entrega al
+                  cliente.
                 </p>
               </div>
             </div>
+          </div>
+          <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 sm:p-5 space-y-3">
+            <h4 class="font-bold text-slate-900 text-sm">
+              Evolución: APIs provistas por las logísticas
+            </h4>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              Para una integración más estable, priorizaría APIs documentadas con credenciales
+              asignadas al proyecto y soporte del proveedor. Podría reemplazar la consulta de cada
+              transportista manteniendo la ficha común, después de adaptar y probar sus campos y
+              estados. Reduciría la dependencia del HTML y, en Entregar, de una sesión de navegador;
+              seguiría necesitando manejar límites, vencimientos, errores y cambios de versión.
+            </p>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              <strong>Urbano:</strong> publica una API de seguimiento; las credenciales se gestionan
+              por su ejecutivo de cuentas. <strong>Andreani:</strong> dispone de un portal de APIs y
+              un entorno de pruebas para clientes; tendría que gestionar el acceso y contrastar sus
+              campos con el servicio actual. <strong>Entregar:</strong> tendría que confirmar con la
+              logística si ofrece una API para esta cuenta y qué información permite consultar. No
+              tengo confirmado ese acceso ni lo doy por implementado.
+            </p>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              Una API oficial no garantiza más datos: necesitaría confirmar referencias BGH,
+              cambios, productos, comprobantes y cantidades. Las actualizaciones automáticas solo
+              serían posibles si el proveedor habilita notificaciones de eventos y las integro.
+              Referencias:
+              <a
+                href="https://integrate.urbano.com.ar/docs/api/es"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="text-blue-600 hover:text-blue-800 underline"
+                >API de Urbano</a
+              >
+              y
+              <a
+                href="https://developers.andreani.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="text-blue-600 hover:text-blue-800 underline"
+                >Andreani Developers</a
+              >.
+            </p>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              <strong>Alcance actual:</strong> Para esta versión decidí mantener la API sin
+              autenticación. Eso incluye la renovación de sesión de Entregar. Proteger esa operación
+              administrativa sigue siendo un pendiente antes de ampliar el acceso al servicio.
+            </p>
           </div>
         </div>
 
@@ -1132,9 +1221,9 @@
             Cómo funciona
           </button>
         </div>
-        <p class="text-[11px] text-slate-400"
-          >Consultas de seguimiento a Urbano, Andreani y Entregar</p
-        >
+        <p class="text-[11px] text-slate-400">
+          Consultas de seguimiento a Urbano, Andreani y Entregar
+        </p>
       </div>
     </footer>
 

@@ -1,5 +1,7 @@
 # Integraciones
 
+Para el recorrido completo de una consulta, la tecnología utilizada y las posibilidades de migración a APIs oficiales, ver [arquitectura y funcionamiento](arquitectura.md).
+
 El navegador consulta la API del proyecto. El servidor envía la petición al transportista, interpreta su respuesta y devuelve una ficha con campos comunes.
 
 ## Urbano
